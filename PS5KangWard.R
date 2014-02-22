@@ -9,6 +9,8 @@ rm(list=ls())
 library(MASS)
 library(pdist) #don't forget to install this if necessary! 
 
+##### Section A: Simulation Set Up
+
 #Voter Distributions - A function for creating distributions of voter preferences
 
 #This function allows the user to a create a distribution of voters with preferences on two dimensions.  The user is allowed to choose one of five distributional set-ups from which preferences are drawn.  These are standard normals, normal distributions with user specified variances, uniform distributions, a multivariate normal with a user specified vector of means and variance-covariance matrix, and finally, up to three multivariate normal distributions, where each voter is equally likely to have her preferences drawn from each distribution. 
@@ -57,8 +59,88 @@ VoterDistribution <- function(n=100,dist="s",vars=c(1,1),mu=NULL,Sigma=NULL,...)
   return(mat1)  
 }
 
+Voters <- VoterDistribution()
 
 party <- matrix(rnorm(4),ncol=2)
 ll <- pdist(mat1,party)
 distance <- matrix(ll@dist, ncol=2, byrow=TRUE)
 distance[,1] > distance[,2]
+
+#### Section B: Get Things Moving! 
+
+#1. For each iteration t of the model, the parties will locate at the "mean" position of all voters who addiliated with them in period t-1
+
+#2. Write a funciton that chooses the "starting" position of the parties at random
+
+#PartyStarter - A function to generate random ideal points for parties on two dimensions
+
+#This function allows the user to generate preferences for parties on 2 dimensions according to a number of distributions.  The user can specificy the parameters of all the distributions.  There are 3 distributions supported: the normal, the uniform, and the multivariate normal. For the normal distribution option, the user has the ability to choose difference mean and variance parameters for each distribution. The function is very similar to the VoterDistribution function above.  
+
+#input: n - the number of parties.  Defaults to 2.
+#       dist - the distribution used for creating preferences.  "n" for normal, "u" for uniform, and "m" for multivariate normal. Defaults to "n" 
+#       vars - the vector of variances for use in a normal.  Should be of lenght two.  Defaults to c(1,1), which is the standard normal variance. 
+#       means - the vector of means for use in normals. Should be of length two.  Defaults to c(0,0), which is the standard normal variance.
+#       ... - additional arguments to be passed to other functions (ie, min, max, mu, or Sigma)
+
+#output: an n by 2 matrix of party ideal points.  
+
+#Authors: Myunghoon Kang and Dalston Ward
+
+PartyStarter <- function(n=2,dist="n",vars=c(1,1),means=c(0,0),...){
+  if(dist=="n"){
+    dim1 <- rnorm(n,mean=means[1],sd=sqrt(vars[1]))
+    dim2 <- rnorm(n,mean=means[2],sd=sqrt(vars[2]))
+    parties <- cbind(dim1,dim2)
+  }
+  if(dist=="u"){
+    parties <- matrix(runif(4,...),ncol=2)
+  }
+  if(dist=="m"){
+    parties <- mvrnorm(2,...)
+  }
+  rownames(parties) <- c("PartyA","PartyB")
+  colnames(parties) <- c("dim1","dim2")
+  return(parties)
+}
+
+#3. write a function that re-locates the parties according to this hueristic
+
+#PartyRelocator - A function that changes parties' ideal points to the mean position of thier voters.
+
+#This function lets parties update thier ideal points to the average position of all affiliated voters.  To do this, it assumes that the Voters input has the following variables: affiliation, which is a vector with each voter's party affiliation, and dim1, and dim2, which are each voter's ideal points on each dimension.  The function then uses the tapply funciton to quickly subset the voters data according to affiliation and calculate the mean. Note: the parties need to be in the parties object in alphabetical order by party name for this to work right.  
+
+#input: Voters - a data frame containing at least three variables: dim1 and dim2, which are numeric vectors of voter ideal points, and affiliation, which is a character or factor containing each voter's current party affiliation
+#       Parties - The current party ideal point matrix.  This matrix is used to ensure that the output matrix has the same number of parties and dimensions as the current parties matrix, and the same row/column names. 
+
+#Output: A matrix with each party's updated ideal points on both dimensions
+
+#Author: Myunghoon Kang and Dalston Ward
+
+PartyRelocator <- function(Voters,Parties){
+  Parties[,1] <- tapply(Voters$dim1,affiliation,mean)
+  Parties[,2] <- tapply(Voters$dim2,affiliation,mean)
+  return(Parties)
+}
+
+
+#the next like ten lines are just some code I've been using to test my functions 
+Voters <- VoterDistribution()
+Parties <- PartyStarter()
+
+VPdists <- pdist(Voters,Parties)
+distances <- matrix(VPdists@dist, ncol=2, byrow=TRUE,dimnames=list(rownames=1:100,colnames=c("Dist from PartyA","Dist from PartyB")))
+affiliation <- ifelse(distances[,1] < distances[,2],"PartyA","PartyB")
+Voters <- data.frame(dim1=Voters[,1],dim2=Voters[,2],affiliation=affiliation)
+PartyRelocator(Voters,Parties)
+# here ends the "testing" code 
+
+#4. Write a "master" function that runs the simulation.  This should involve:
+
+# - Sets up the voters
+# - Setus up (at random) the initial positions of the two parties
+# - Iterates across the following steps: 
+# -- Voters cast votes
+# -- Parties re-locate
+# - After a specified number of iterations, the simulation stops
+
+#5. You will find it helpful (and fun!!!!!) to have some visualtion of this process, but note that this will slow up the speed of your simulations considerably.  
