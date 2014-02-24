@@ -59,12 +59,48 @@ VoterDistribution <- function(n=100,dist="s",vars=c(1,1),mu=NULL,Sigma=NULL,...)
   return(mat1)  
 }
 
+
 Voters <- VoterDistribution()
 
-party <- matrix(rnorm(4),ncol=2)
-ll <- pdist(mat1,party)
-distance <- matrix(ll@dist, ncol=2, byrow=TRUE)
-distance[,1] > distance[,2]
+party <- matrix(rnorm(4),ncol=2) #generates random positions for each party along 2 dimensions. 
+
+VoterAffiliate <- function(Voters, party){
+  ll <- pdist(Voters,party)
+  distance <- matrix(ll@dist, ncol=2, byrow=TRUE) #calculates distance between voters and each party
+  affil <- distance[,1] < distance[,2] # If a voter is closer to party 1 than party 2 "TRUE", "FALSE" otherwise
+  affil[affil==TRUE] <- "party1" #records party 1 for voters who are closer to party 1 than party 2
+  affil[affil==FALSE] <- "party2" #records party 2 for voters who are closer to party 2 than party 1
+  Voters <- cbind(Voters, affil) #affiliation of voters are added to the voter matrix
+  return(Voters)
+}
+
+Voters <- VoterAffiliate(Voters, party)
+
+
+Visual <- function(Voters, party){
+  plot(Voters[,1], Voters[,2], col=ifelse(Voters[,3]=="party1", "blue", "red"), 
+       xlab="Dimension 1", ylab="Dimension 2") #plot position of the voters
+                                               #blue for party 1, red for party 2
+                                               #x-axis is dimension 1, y-axis is dimension 2
+  points(party[1,1],party[1,2], col="blue", pch=19, cex=1.2) #points the position of party 1
+  points(party[2,1],party[2,2], col="red", pch=19, cex=1.2) #points the position of party 2
+  text(party[1,1],party[1,2],"Party 1", col="blue", pos=1) 
+  text(party[2,1],party[2,2],"Party 2", col="red", pos=1)
+}
+Visual(Voters, party)
+
+par(mfrow=c(3,3))
+
+for(i in 1:9){ # try plot the positions of the parties, the positions of the voters and their
+               # affiliation 9 times.
+  Voters <- VoterDistribution()
+  party <- matrix(rnorm(4),ncol=2)
+  Voters <- VoterAffiliate(Voters, party)
+  Visual(Voters, party)
+  }
+
+par(mfrow=c(1,1))
+
 
 #### Section B: Get Things Moving! 
 
