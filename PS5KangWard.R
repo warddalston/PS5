@@ -65,9 +65,10 @@ Voters <- VoterDistribution()
 party <- matrix(rnorm(4),ncol=2) #generates random positions for each party along 2 dimensions. 
 
 VoterAffiliate <- function(Voters, party){
-  ll <- pdist(Voters,party)
+  ll <- pdist(Voters,Parties)
   distance <- matrix(ll@dist, ncol=2, byrow=TRUE) #calculates distance between voters and each party
   affiliation <- distance[,1] < distance[,2] # If a voter is closer to party 1 than party 2 "TRUE", "FALSE" otherwise
+  affiliation
   #Note_DW: I changed "affil" to "affiliation", so that it's clearer throughout what exactly objects mean. 
   affiliation[affiliation==TRUE] <- 1 #records 1 (short for party 1 - this keeps the matrix numeric.) for voters who are closer to party 1 than party 2
   affiliation[affiliation==FALSE] <- 2 #records 2 (short for party 2 - again, this keeps the matric numeric) for voters who are closer to party 2 than party 1
@@ -186,4 +187,15 @@ Parties <- PartyRelocator(Voters,Parties)
 # -- Parties re-locate
 # - After a specified number of iterations, the simulation stops
 
+ElectoralSimulations <- function(nsims=1,...){
+  Voters <- VoterDistribution(...)
+  Parties <- PartyStarter(...)
+  for(i in 1:nsims){
+    Voters <- VoterAffiliate(Voters,Parties)
+    Parties <- PartyRelocator(Voters,Parties)
+  }
+  return(list(Voters=Voters,Parties=Parties))
+}
+
+ElectoralSimulations(1000)
 #5. You will find it helpful (and fun!!!!!) to have some visualtion of this process, but note that this will slow up the speed of your simulations considerably.  
