@@ -67,18 +67,21 @@ party <- matrix(rnorm(4),ncol=2) #generates random positions for each party alon
 VoterAffiliate <- function(Voters, party){
   ll <- pdist(Voters,party)
   distance <- matrix(ll@dist, ncol=2, byrow=TRUE) #calculates distance between voters and each party
-  affil <- distance[,1] < distance[,2] # If a voter is closer to party 1 than party 2 "TRUE", "FALSE" otherwise
-  affil[affil==TRUE] <- "party1" #records party 1 for voters who are closer to party 1 than party 2
-  affil[affil==FALSE] <- "party2" #records party 2 for voters who are closer to party 2 than party 1
-  Voters <- cbind(Voters, affil) #affiliation of voters are added to the voter matrix
+  affiliation <- distance[,1] < distance[,2] # If a voter is closer to party 1 than party 2 "TRUE", "FALSE" otherwise
+  #Note_DW: I changed "affil" to "affiliation", so that it's clearer throughout what exactly objects mean. 
+  affiliation[affiliation==TRUE] <- 1 #records 1 (short for party 1 - this keeps the matrix numeric.) for voters who are closer to party 1 than party 2
+  affiliation[affiliation==FALSE] <- 2 #records 2 (short for party 2 - again, this keeps the matric numeric) for voters who are closer to party 2 than party 1
+  if(ncol(Voters)==2){
+  Voters <- cbind(Voters, affiliation) #affiliation of voters are added to the voter matrix
+  } else { Voters[,3] <- affiliation}
   return(Voters)
 }
 
-Voters <- VoterAffiliate(Voters, party)
+Voters <- VoterAffiliate(Voters, Parties) 
 
 
 Visual <- function(Voters, party){
-  plot(Voters[,1], Voters[,2], col=ifelse(Voters[,3]=="party1", "blue", "red"), 
+  plot(Voters[,1], Voters[,2], col=ifelse(Voters[,3]==1, "blue", "red"), 
        xlab="Dimension 1", ylab="Dimension 2") #plot position of the voters
                                                #blue for party 1, red for party 2
                                                #x-axis is dimension 1, y-axis is dimension 2
@@ -87,7 +90,7 @@ Visual <- function(Voters, party){
   text(party[1,1],party[1,2],"Party 1", col="blue", pos=1) 
   text(party[2,1],party[2,2],"Party 2", col="red", pos=1)
 }
-Visual(Voters, party)
+Visual(Voters, Parties)
 
 par(mfrow=c(3,3))
 
@@ -134,7 +137,7 @@ PartyStarter <- function(n=2,dist="n",vars=c(1,1),means=c(0,0),...){
   if(dist=="m"){
     parties <- mvrnorm(2,...)
   }
-  rownames(parties) <- c("PartyA","PartyB")
+  rownames(parties) <- c("Party1","Party2")
   colnames(parties) <- c("dim1","dim2")
   return(parties)
 }
@@ -143,9 +146,9 @@ PartyStarter <- function(n=2,dist="n",vars=c(1,1),means=c(0,0),...){
 
 #PartyRelocator - A function that changes parties' ideal points to the mean position of thier voters.
 
-#This function lets parties update thier ideal points to the average position of all affiliated voters.  To do this, it assumes that the Voters input has the following variables: affiliation, which is a vector with each voter's party affiliation, and dim1, and dim2, which are each voter's ideal points on each dimension.  The function then uses the tapply funciton to quickly subset the voters data according to affiliation and calculate the mean. Note: the parties need to be in the parties object in alphabetical order by party name for this to work right.  
+#This function lets parties update thier ideal points to the average position of all affiliated voters.  To do this, it assumes that the Voters input has the following variables in the following order: first, a vector of voters' dim 1 preferences, second, a vector of voters' dim2 preferences, and third, a vector with either ones or twos giving voters party affiliation (1 for party 1 supporters, 2 for party 2 supporters.)   The function then subsets the voters data and uses apply to calculate the column means for each type of voters.  These means are then put into the parties object and returned.    
 
-#input: Voters - a data frame containing at least three variables: dim1 and dim2, which are numeric vectors of voter ideal points, and affiliation, which is a character or factor containing each voter's current party affiliation
+#input: Voters - a matrix or data frame containing at least three variables: dim1 and dim2, which are numeric vectors of voter ideal points, and affiliation, which takes values of 1 for party 1 and 2 for party 2.  
 #       Parties - The current party ideal point matrix.  This matrix is used to ensure that the output matrix has the same number of parties and dimensions as the current parties matrix, and the same row/column names. 
 
 #Output: A matrix with each party's updated ideal points on both dimensions
@@ -153,8 +156,8 @@ PartyStarter <- function(n=2,dist="n",vars=c(1,1),means=c(0,0),...){
 #Author: Myunghoon Kang and Dalston Ward
 
 PartyRelocator <- function(Voters,Parties){
-  Parties[,1] <- tapply(Voters$dim1,affiliation,mean)
-  Parties[,2] <- tapply(Voters$dim2,affiliation,mean)
+  Parties[1,] <- apply(Voters[Voters[,3]==1,1:2],2,mean)
+  Parties[2,] <- apply(Voters[Voters[,3]==2,1:2],2,mean)
   return(Parties)
 }
 
@@ -167,7 +170,11 @@ VPdists <- pdist(Voters,Parties)
 distances <- matrix(VPdists@dist, ncol=2, byrow=TRUE,dimnames=list(rownames=1:100,colnames=c("Dist from PartyA","Dist from PartyB")))
 affiliation <- ifelse(distances[,1] < distances[,2],"PartyA","PartyB")
 Voters <- data.frame(dim1=Voters[,1],dim2=Voters[,2],affiliation=affiliation)
-PartyRelocator(Voters,Parties)
+
+Voters <- VoterDistribution()
+Parties <- PartyStarter()
+Voters <- VoterAffiliate(Voters,Parties)
+Parties <- PartyRelocator(Voters,Parties)
 # here ends the "testing" code 
 
 #4. Write a "master" function that runs the simulation.  This should involve:
