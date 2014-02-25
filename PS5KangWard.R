@@ -59,16 +59,12 @@ VoterDistribution <- function(n=100,dist="s",vars=c(1,1),mu=NULL,Sigma=NULL,...)
   return(mat1)  
 }
 
-
-Voters <- VoterDistribution()
-
 party <- matrix(rnorm(4),ncol=2) #generates random positions for each party along 2 dimensions. 
 
-VoterAffiliate <- function(Voters, party){
-  ll <- pdist(Voters,Parties)
+VoterAffiliate <- function(Voters, Parties){
+  ll <- pdist(Voters[,1:2],Parties)
   distance <- matrix(ll@dist, ncol=2, byrow=TRUE) #calculates distance between voters and each party
   affiliation <- distance[,1] < distance[,2] # If a voter is closer to party 1 than party 2 "TRUE", "FALSE" otherwise
-  affiliation
   #Note_DW: I changed "affil" to "affiliation", so that it's clearer throughout what exactly objects mean. 
   affiliation[affiliation==TRUE] <- 1 #records 1 (short for party 1 - this keeps the matrix numeric.) for voters who are closer to party 1 than party 2
   affiliation[affiliation==FALSE] <- 2 #records 2 (short for party 2 - again, this keeps the matric numeric) for voters who are closer to party 2 than party 1
@@ -77,9 +73,6 @@ VoterAffiliate <- function(Voters, party){
   } else { Voters[,3] <- affiliation}
   return(Voters)
 }
-
-Voters <- VoterAffiliate(Voters, Parties) 
-
 
 Visual <- function(Voters, party){
   plot(Voters[,1], Voters[,2], col=ifelse(Voters[,3]==1, "blue", "red"), 
@@ -157,9 +150,10 @@ PartyStarter <- function(n=2,dist="n",vars=c(1,1),means=c(0,0),...){
 #Author: Myunghoon Kang and Dalston Ward
 
 PartyRelocator <- function(Voters,Parties){
-  Parties[1,] <- apply(Voters[Voters[,3]==1,1:2],2,mean)
-  Parties[2,] <- apply(Voters[Voters[,3]==2,1:2],2,mean)
-  return(Parties)
+  Output <- matrix(ncol=ncol(Parties),nrow=nrow(Parties),dimnames=dimnames(Parties))
+  Output[1,] <- apply(Voters[Voters[,3]==1,1:2],2,mean)
+  Output[2,] <- apply(Voters[Voters[,3]==2,1:2],2,mean)
+  return(Output)
 }
 
 
@@ -187,15 +181,33 @@ Parties <- PartyRelocator(Voters,Parties)
 # -- Parties re-locate
 # - After a specified number of iterations, the simulation stops
 
+#ElectoralSimulations - A function for running a simple electoral simulations
+
+#This function creates simulated electorates and parties with preferences on a 2 dimensional policy space, then has voters choose a party to support, and finally has parties update thier positions based on thier voters.  The last two steps, voting and realignment, are then iterated by the model until the parties adopt the same positions 2 elections in a row, which constitues an electoral equilibrium.  Once this occurs the function breaks, and returning the voter preferences, party affilliation, and party preferences for the final election, as well as the number of elections. Four functions are used internally by the function: VoterDistribution, PartyStarter, VoterAffiliate, and PartyRelocator.  The user has control of the number of simulated elections, as well as the parameters and distributions from which voters are drawn.  
+
+#input: nsims - the number of simulated elections to hold.  Defaults to 1
+#       ... - arguments passed to other functions.  These are things like dist, n, mu, and Sigma, which are used in the VoterDistribution and PartyStarter functions.  
+
+#output: A list with two elements: the Voters object from the final election, containing voter preferences and party alignments, and the parties object from the final election, containing party ideal points.  Also prints a message informing the user of the number of simulated elections when an equilibrium is reached (if an equilibrium is reached within the user specified number of simulations)
+
+#Authors: Myunghoon Kang and Dalston Ward 
+
 ElectoralSimulations <- function(nsims=1,...){
   Voters <- VoterDistribution(...)
   Parties <- PartyStarter(...)
-  for(i in 1:nsims){
+  for(i in 1:nsims){ #iterates according to nsims.  I think this is the appropriate use of a for loop.
     Voters <- VoterAffiliate(Voters,Parties)
-    Parties <- PartyRelocator(Voters,Parties)
+    PartiesNew <- PartyRelocator(Voters,Parties)  
+    if(all(mapply(identical,Parties,PartiesNew))){ #checks to see if the the updated and previous party positions are the same.  If they are, it stops everything.  
+      Parties <- PartiesNew
+      cat("The Parties reached equilibrium positions after", i, "elections.\n")
+      break
+    }
+    Parties <- PartiesNew #when positions aren't the same, the parties object is changed, and a new election occurs.  
   }
   return(list(Voters=Voters,Parties=Parties))
 }
 
-ElectoralSimulations(1000)
+ElectoralSimulations(100)
+
 #5. You will find it helpful (and fun!!!!!) to have some visualtion of this process, but note that this will slow up the speed of your simulations considerably.  
