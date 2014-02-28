@@ -15,47 +15,49 @@ library(pdist) #don't forget to install this if necessary!
 
 #This function allows the user to a create a distribution of voters with preferences on two dimensions.  The user is allowed to choose one of five distributional set-ups from which preferences are drawn.  These are standard normals, normal distributions with user specified variances, uniform distributions, a multivariate normal with a user specified vector of means and variance-covariance matrix, and finally, up to three multivariate normal distributions, where each voter is equally likely to have her preferences drawn from each distribution. 
 
-#input: n - the number of voters.  Defaults to 100
-#       dist - one of four values: "s" for standard normal, "n" for user sepecified normal, "u" for uniform, "m" for one of the multivariate options. Defaults to "s"
-#       vars - a vector of two variances for use in the "n" option.  Defaults to c(1,1).
-#       mu - a 2 by d matrix of means for use in the multivariate normal distributions, where each column represents a vector of means for a multivariate normal distributions.  d represents the number of multivariate distributions from which preferences are drawn, it can be 1,2, or 3.  
-#       Sigma - a 2 by 2 by d array, where each table is a variance-covariance matrix for a multivariate normal distribution.  d represetns the number of multivariate distributions from which preferences are drawn, it can be 1,2 or 3. 
-#       ... - arguments to be passed further on (such as min and max for runif!)
+#input: Vn - the number of voters.  Defaults to 100
+#       Vdist - one of four values: "s" for standard normal, "n" for user specified normal, "u" for uniform, "m" for one of the multivariate options. Defaults to "s"
+#       Vmeans - A vector of means for use in the "n" option.  Defaults to c(0,0)
+#       Vvars - a vector of two variances for use in the "n" option.  Defaults to c(1,1).
+#       Vmu - a 2 by d matrix of means for use in the multivariate normal distributions, where each column represents a vector of means for a multivariate normal distributions.  d represents the number of multivariate distributions from which preferences are drawn, it can be 1,2, or 3.  
+#       VSigma - a 2 by 2 by d array, where each table is a variance-covariance matrix for a multivariate normal distribution.  d represetns the number of multivariate distributions from which preferences are drawn, it can be 1,2 or 3. 
+#       Vmin - the minimum value for a uniform distribution.  Defaults to 0
+#       Vmax - the maximum value for a uniform distribution.  Defaults to 1
 
 #Output: an n by 2 matrix of voter preferences 
 
 #Authors: Myunghoon Kang and Dalston Ward
 
-VoterDistribution <- function(n=100,dist="s",vars=c(1,1),mu=NULL,Sigma=NULL,...){
-  if(dist=="s"){
-  mat1 <- matrix(rnorm(n*2),nrow=n)  
+VoterDistribution <- function(Vn=100,Vdist="s",Vmeans=c(0,0),Vvars=c(1,1),Vmu=NULL,VSigma=NULL,Vmin=0,Vmax=1){
+  if(Vdist=="s"){
+  mat1 <- matrix(rnorm(Vn*2),nrow=Vn)  
   } 
-  if(dist=="n"){
-  dim1 <- rnorm(n,sd=sqrt(vars[1]))  #it now takes variances instead of SD's (in accord with the directions from the worksheet)
-  dim2 <- rnorm(n,sd=sqrt(vars[2]))
+  if(Vdist=="n"){
+  dim1 <- rnorm(Vn,mean=Vmeans[1],sd=sqrt(Vvars[1]))  #it now takes variances instead of SD's (in accord with the directions from the worksheet)
+  dim2 <- rnorm(Vn,mean=Vmeans[2],sd=sqrt(Vvars[2]))
   mat1 <- cbind(dim1, dim2)
   }
-  if(dist=="u"){
-  mat1 <- matrix(runif(n*2,...),nrow=n) #The dots allow one to specify the min and max if desired.  
+  if(Vdist=="u"){
+  mat1 <- matrix(runif(Vn*2,min=Vmin,max=Vmax),nrow=Vn) #The dots allow one to specify the min and max if desired.  
   }
-  if(dist=="m"){ #I collappsed m and mm, trying to make it a bit more generalized. 
-    mat1 <- mvrnorm(n,mu[,1],Sigma[,,1]) #mu (matrix) and sigma (array) are multidimensional objects now, and the function determines what to do based on the number of columns.  
-    if(ncol(mu)==2){ #the user can now choose to have preferences be based on 1, 2 or 3 distributions.
-    r <- sample(2*n, n)
-    mat2 <- mvrnorm(n,mu[,2],Sigma[,,2])
+  if(Vdist=="m"){ #I collappsed m and mm, trying to make it a bit more generalized. 
+    mat1 <- mvrnorm(Vn,Vmu[,1],VSigma[,,1]) #mu (matrix) and sigma (array) are multidimensional objects now, and the function determines what to do based on the number of columns.  
+    if(ncol(Vmu)==2){ #the user can now choose to have preferences be based on 1, 2 or 3 distributions.
+    r <- sample(2*Vn, Vn)
+    mat2 <- mvrnorm(Vn,mu[,2],VSigma[,,2])
     mat4 <- rbind(mat1, mat2)
     mat1 <- mat4[r,]
     }
-    if(ncol(mu)==3){
-    r <- sample(3*n, n)
-    mat2 <- mvrnorm(n,mu[,2],Sigma[,,2])
-    mat3 <- mvrnorm(n,mu[,3],Sigma[,,3])
+    if(ncol(Vmu)==3){
+    r <- sample(3*Vn, Vn)
+    mat2 <- mvrnorm(Vn,Vmu[,2],VSigma[,,2])
+    mat3 <- mvrnorm(Vn,Vmu[,3],VSigma[,,3])
     mat4 <- rbind(mat1, mat2, mat3)
     mat1 <- mat4[r,]
     }
   }
   colnames(mat1) <- c("dim1","dim2") #just so the output is a bit easier to understand
-  rownames(mat1) <- 1:n 
+  rownames(mat1) <- 1:Vn 
   return(mat1)  
 }
 
@@ -81,7 +83,7 @@ Visual <- function(Voters, party){
                                                #x-axis is dimension 1, y-axis is dimension 2
   points(party[1,1],party[1,2], col="blue", pch=19, cex=1.2) #points the position of party 1
   points(party[2,1],party[2,2], col="red", pch=19, cex=1.2) #points the position of party 2
-  text(party[1,1],party[1,2],"Party 1", pos=1) 
+  text(party[1,1],party[1,2],"Party 1", pos=1)  #changed the color of these to black, so that they show up better.  
   text(party[2,1],party[2,2],"Party 2", pos=1)
 }
  #Visual(Voters, Parties)
@@ -109,29 +111,32 @@ par(mfrow=c(1,1))
 
 #This function allows the user to generate preferences for parties on 2 dimensions according to a number of distributions.  The user can specificy the parameters of all the distributions.  There are 3 distributions supported: the normal, the uniform, and the multivariate normal. For the normal distribution option, the user has the ability to choose difference mean and variance parameters for each distribution. The function is very similar to the VoterDistribution function above.  
 
-#input: n - the number of parties.  Defaults to 2.
-#       dist - the distribution used for creating preferences.  "n" for normal, "u" for uniform, and "m" for multivariate normal. Defaults to "n" 
-#       vars - the vector of variances for use in a normal.  Should be of lenght two.  Defaults to c(1,1), which is the standard normal variance. 
-#       means - the vector of means for use in normals. Should be of length two.  Defaults to c(0,0), which is the standard normal variance.
-#       ... - additional arguments to be passed to other functions (ie, min, max, mu, or Sigma)
+#input: Pn - the number of parties.  Defaults to 2.
+#       Pdist - the distribution used for creating preferences.  "n" for normal, "u" for uniform, and "m" for multivariate normal. Defaults to "n" 
+#       Pvars - the vector of variances for use in a normal.  Should be of lenght two.  Defaults to c(1,1), which is the standard normal variance. 
+#       Pmeans - the vector of means for use in normals. Should be of length two.  Defaults to c(0,0), which is the standard normal mean.
+#       Pmin - the minimum, for use in a uniform distribution.  Defaults to 0.  
+#       Pmax - the maximum for use in a uniform distribution.  Defaults to 1.
+#       Pmu - the vector of means for use in a multivariate normal.  Should be length two.  Defaults to c(0,0)
+#       PSigma - the variance-covariance matrix for use in a multivariate normal.  Should be a positive definite 2 by 2 matrix.  Defaults to cbind(c(1,0),(0,1)). 
 
 #output: an n by 2 matrix of party ideal points.  
 
 #Authors: Myunghoon Kang and Dalston Ward
 
-PartyStarter <- function(n=2,dist="n",vars=c(1,1),means=c(0,0),...){
-  if(dist=="n"){
-    dim1 <- rnorm(n,mean=means[1],sd=sqrt(vars[1]))
-    dim2 <- rnorm(n,mean=means[2],sd=sqrt(vars[2]))
+PartyStarter <- function(Pn=2,Pdist="n",Pvars=c(1,1),Pmeans=c(0,0),Pmin=0,Pmax=1,Pmu=c(0,0),PSigma=cbind(c(1,0),c(0,1))){
+  if(Pdist=="n"){
+    dim1 <- rnorm(Pn,mean=Pmeans[1],sd=sqrt(Pvars[1]))
+    dim2 <- rnorm(Pn,mean=Pmeans[2],sd=sqrt(Pvars[2]))
     parties <- cbind(dim1,dim2)
   }
-  if(dist=="u"){
-    parties <- matrix(runif(4,...),ncol=2)
+  if(Pdist=="u"){
+    parties <- matrix(runif(Pn*2,min=Pmin,max=Pmax),ncol=2)
   }
-  if(dist=="m"){
-    parties <- mvrnorm(2,...)
+  if(Pdist=="m"){
+    parties <- mvrnorm(Pn,mu=Pmu,Sigma=PSigma)
   }
-  rownames(parties) <- c("Party1","Party2")
+  rownames(parties) <- paste("Party", 1:Pn)
   colnames(parties) <- c("dim1","dim2")
   return(parties)
 }
@@ -183,40 +188,68 @@ Parties <- PartyRelocator(Voters,Parties)
 
 #ElectoralSimulations - A function for running a simple electoral simulations
 
-#This function creates simulated electorates and parties with preferences on a 2 dimensional policy space, then has voters choose a party to support, and finally has parties update thier positions based on thier voters.  The last two steps, voting and realignment, are then iterated by the model until the parties adopt the same positions 2 elections in a row, which constitues an electoral equilibrium.  Once this occurs the function breaks, and returning the voter preferences, party affilliation, and party preferences for the final election, as well as the number of elections. Four functions are used internally by the function: VoterDistribution, PartyStarter, VoterAffiliate, and PartyRelocator.  The user has control of the number of simulated elections, as well as the parameters and distributions from which voters are drawn.  
+#This function creates simulated electorates and parties with preferences on a 2 dimensional policy space, then has voters choose a party to support, and finally has parties update thier positions based on thier voters.  The last two steps, voting and realignment, are then iterated by the model until the parties adopt the same positions 2 elections in a row, which constitues an electoral equilibrium.  Once this occurs the function breaks, and returning the voter preferences, party affilliation, and party preferences for the final election, as well as the number of elections. Four functions are used internally by the function: VoterDistribution, PartyStarter, VoterAffiliate, and PartyRelocator.  The user has control of the number of simulated elections, as well as the parameters and distributions from which voters are drawn.  The user can also choose whether or not to make a plot, where voters's ideal points and the paths of parties ideal points throughout the iterated "elections" are drawn.  A more specific description of the plot can be found below in the output section. 
 
-#input: nsims - the number of simulated elections to hold.  Defaults to 1
-#       ... - arguments passed to other functions.  These are things like dist, n, mu, and Sigma, which are used in the VoterDistribution and PartyStarter functions.  
+#input: nsims - the number of simulated elections to hold.  Defaults to 1.  Values less than 1 cause the function to break return a warning.  
+#       visualize - Whether or not to plot the voters and parties as the simulations occur.  Defaults to FALSE.
+#       ... - arguments passed to other functions.  These are things like dist, n, mu, and Sigma, which are used in the VoterDistribution and PartyStarter functions (with P or V before the arguements, P for use in the PartyStarter function and V for the VoterDistribution function).  
 
-#output: A list with two elements: the Voters object from the final election, containing voter preferences and party alignments, and the parties object from the final election, containing party ideal points.  Also prints a message informing the user of the number of simulated elections when an equilibrium is reached (if an equilibrium is reached within the user specified number of simulations)
+#output: A list with two elements: the Voters object from the final election, containing voter preferences and party alignments, and the parties object from the final election, containing party ideal points.  Also prints a message informing the user of the number of simulated elections when an equilibrium is reached (if an equilibrium is reached within the user specified number of simulations) or the number of elections simulated without arriving at an equilibrium. 
+
+#If visualize==TRUE, then a plot is also created.  This plot contains a single unfilled circle for each voter, which is colored blue or red depending on the voter's party affiliation.  When a voter switches party affiliation, a new circle of the other color is plotted over the original circle, resulting in a purple circle.  This indiciates a voter who has switched affiliation.  The more "bluish-purple" indicates the voter has switched from the red to the blue side more often, while the more "redish-purple" indicates the voter has switched to the red side from the blue side more.  The locations of the parties are also plotted.  Thier initial positions are plotted with a large filled circle, with the text "party X" written underneath, where X is the party number.  Subsequent party positions are represented by small filled cirlces connected by line segments.  The party position in the last iteration (either because the simluation reached equilibrium or beacuse the total of nsims iterations were ran) is represented by a large filled square, with the text "Final Position" written underneath.    
 
 #Authors: Myunghoon Kang and Dalston Ward 
 
 ElectoralSimulations <- function(nsims=1,visualize=FALSE,...){
+  
+  #don't give nsims the wrong input.  Please.  
+  if(nsims < 1) {
+    stop("nsims must be a numeric of at least 1!")
+  }
+  
+  #The next two lines simply create the voter and party distributions
   Voters <- VoterDistribution(...)
   Parties <- PartyStarter(...)
+  
+  #The first two lines carry out the first "election".  This always happens, regardless of the nsims value. 
   Voters <- VoterAffiliate(Voters,Parties)
-  if(visualize==TRUE){
-    Visual(Voters,Parties)
-   # legend("topright",legend=c("Initial Position","Intermediate Position","Final Position"), pch=c(19,20,15), bty="n",pt.cex=c(1.2,1,1.2))
-  }
   PartiesNew <- PartyRelocator(Voters,Parties)
+  
+  #the next several lines are only used when visualizing. 
   if(visualize==TRUE){
-    points(x=Voters[,1],y=Voters[,2],col=ifelse(Voters[,3]==1, "blue", "red"))
+    Visual(Voters,Parties) #make a base plot using initial voter affiliation and party preferences
+    if(!nsims==1){
+      #update the party positions on the plot normally if there is more than 1 election 
     points(PartiesNew[1,1],PartiesNew[1,2], col="blue", pch=20)
     points(PartiesNew[2,1],PartiesNew[2,2], col="red", pch=20)
+    } else { #where there's only a single election (a single simulation), then this makes the plot have squares to represent the final position 
+      points(PartiesNew[1,1],PartiesNew[1,2], col="blue", pch=15)
+      points(PartiesNew[2,1],PartiesNew[2,2], col="red", pch=15)
+      text(PartiesNew[1,1],PartiesNew[1,2],"Final Position", pos=1) 
+      text(PartiesNew[2,1],PartiesNew[2,2],"Final Position", pos=1)
+    } #regardlesss of the subsequent number of elections, use segments to connect the party positions
     segments(x0=Parties[1,1],x1=PartiesNew[1,1],y0=Parties[1,2],y1=PartiesNew[1,2],col="blue")
     segments(x0=Parties[2,1],x1=PartiesNew[2,1],y0=Parties[2,2],y1=PartiesNew[2,2],col="red")
   }
+  
+  #Now, we check if there is more than a single "election".  If so, it executes the required number of elections.  If not, it changes PartiesNew to Parties, and returns the Voters and Parties objects.
+  
+  if(nsims > 1){
   for(i in 2:nsims){ #iterates according to nsims.  I think this is the appropriate use of a for loop.
-    VotersNew <- VoterAffiliate(Voters,Parties)
+    VotersNew <- VoterAffiliate(Voters,Parties) #hold a new election, generating a new voter object
+    
     if(visualize==TRUE){
-    points(x=Voters[Voters[,3]!=VotersNew[,3],1],y=Voters[Voters[,3]!=VotersNew[,3],2],col=ifelse(Voters[,3]==1, "blue", "red"))
+    points(x=Voters[Voters[,3]!=VotersNew[,3],1],y=Voters[Voters[,3]!=VotersNew[,3],2],col=ifelse(Voters[,3]==1, "blue", "red")) #use this voter object to repaint voters who switch parties in the new elections.  These voters will now have purple circles ( because red + blue = purple.)  The more "purple-ish" a voter, the more often she has switched parties! 
     }
-    Voters <- VotersNew
+    
+    Voters <- VotersNew #after the "election results" have been plotted, reassign the VotersNew object to Voters, getting ready for the new "election"
+    
+    #The parties then update based on the current "election"
     PartiesNew <- PartyRelocator(Voters,Parties)
-    if(all(mapply(identical,Parties,PartiesNew))){ #checks to see if the the updated and previous party positions are the same.  If they are, it stops everything.  
-      cat("The Parties reached equilibrium positions after", i, "elections.\n")
+    
+    #checks to see if the the updated and previous party positions are the same.  If they are, it stops everything, and this combination of affiliations and party positions is determined to be an "equilibrium"  
+    if(all(mapply(identical,Parties,PartiesNew))){  
+      cat("The Parties reached equilibrium positions after", i, "elections.\n") 
       if(visualize==TRUE){
         points(PartiesNew[1,1],PartiesNew[1,2], col="blue", pch=15, cex=1.2)
         points(PartiesNew[2,1],PartiesNew[2,2], col="red", pch=15, cex=1.2)
@@ -228,12 +261,16 @@ ElectoralSimulations <- function(nsims=1,visualize=FALSE,...){
       Parties <- PartiesNew
       break
     }
+    
+    #after every "election" and "party update", if visualization is on, the parties' new positions are plotted, and connected to thier old position with a line segment.  The plotting character is a small circle, which differentiates it from the starting position (a large circle) and the last position (a square)
     if(visualize==TRUE){
       points(PartiesNew[1,1],PartiesNew[1,2], col="blue", pch=20)
       points(PartiesNew[2,1],PartiesNew[2,2], col="red", pch=20)
       segments(x0=Parties[1,1],x1=PartiesNew[1,1],y0=Parties[1,2],y1=PartiesNew[1,2],col="blue")
       segments(x0=Parties[2,1],x1=PartiesNew[2,1],y0=Parties[2,2],y1=PartiesNew[2,2],col="red")
     }
+    
+    #these print the "Final Position" stuff for visualization when equilibrium isn't reached by the nsims point. 
     if(i == nsims & visualize==TRUE){
         points(PartiesNew[1,1],PartiesNew[1,2], col="blue", pch=15, cex=1.2)
         points(PartiesNew[2,1],PartiesNew[2,2], col="red", pch=15, cex=1.2)
@@ -241,12 +278,16 @@ ElectoralSimulations <- function(nsims=1,visualize=FALSE,...){
         segments(x0=Parties[2,1],x1=PartiesNew[2,1],y0=Parties[2,2],y1=PartiesNew[2,2],col="red")
         text(PartiesNew[1,1],PartiesNew[1,2],"Final Position", pos=1) 
         text(PartiesNew[2,1],PartiesNew[2,2],"Final Position", pos=1)
+        cat("No equilibrium was reached after",i,"elections \n")
     }
-    Parties <- PartiesNew #when positions aren't the same, the parties object is changed, and a new election occurs.  
-  }
+    
+    #this resets the parties object, to either be returned or used in the next "election"
+    Parties <- PartiesNew 
+  } #closes the for loop
+  } else { Parties <- PartiesNew } #close the if loop (and add an else statement)
   return(list(Voters=Voters,Parties=Parties))
-}
+} #close the function
 
-ElectoralSimulations(100,visualize=TRUE)
+ElectoralSimulations(20,visualize=TRUE)
 
 #5. You will find it helpful (and fun!!!!!) to have some visualtion of this process, but note that this will slow up the speed of your simulations considerably.  
