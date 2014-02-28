@@ -81,10 +81,10 @@ Visual <- function(Voters, party){
                                                #x-axis is dimension 1, y-axis is dimension 2
   points(party[1,1],party[1,2], col="blue", pch=19, cex=1.2) #points the position of party 1
   points(party[2,1],party[2,2], col="red", pch=19, cex=1.2) #points the position of party 2
-  text(party[1,1],party[1,2],"Party 1", col="blue", pos=1) 
-  text(party[2,1],party[2,2],"Party 2", col="red", pos=1)
+  text(party[1,1],party[1,2],"Party 1", pos=1) 
+  text(party[2,1],party[2,2],"Party 2", pos=1)
 }
-Visual(Voters, Parties)
+ #Visual(Voters, Parties)
 
 par(mfrow=c(3,3))
 
@@ -192,22 +192,61 @@ Parties <- PartyRelocator(Voters,Parties)
 
 #Authors: Myunghoon Kang and Dalston Ward 
 
-ElectoralSimulations <- function(nsims=1,...){
+ElectoralSimulations <- function(nsims=1,visualize=FALSE,...){
   Voters <- VoterDistribution(...)
   Parties <- PartyStarter(...)
-  for(i in 1:nsims){ #iterates according to nsims.  I think this is the appropriate use of a for loop.
-    Voters <- VoterAffiliate(Voters,Parties)
-    PartiesNew <- PartyRelocator(Voters,Parties)  
+  Voters <- VoterAffiliate(Voters,Parties)
+  if(visualize==TRUE){
+    Visual(Voters,Parties)
+   # legend("topright",legend=c("Initial Position","Intermediate Position","Final Position"), pch=c(19,20,15), bty="n",pt.cex=c(1.2,1,1.2))
+  }
+  PartiesNew <- PartyRelocator(Voters,Parties)
+  if(visualize==TRUE){
+    points(x=Voters[,1],y=Voters[,2],col=ifelse(Voters[,3]==1, "blue", "red"))
+    points(PartiesNew[1,1],PartiesNew[1,2], col="blue", pch=20)
+    points(PartiesNew[2,1],PartiesNew[2,2], col="red", pch=20)
+    segments(x0=Parties[1,1],x1=PartiesNew[1,1],y0=Parties[1,2],y1=PartiesNew[1,2],col="blue")
+    segments(x0=Parties[2,1],x1=PartiesNew[2,1],y0=Parties[2,2],y1=PartiesNew[2,2],col="red")
+  }
+  for(i in 2:nsims){ #iterates according to nsims.  I think this is the appropriate use of a for loop.
+    VotersNew <- VoterAffiliate(Voters,Parties)
+    if(visualize==TRUE){
+    points(x=Voters[Voters[,3]!=VotersNew[,3],1],y=Voters[Voters[,3]!=VotersNew[,3],2],col=ifelse(Voters[,3]==1, "blue", "red"))
+    }
+    Voters <- VotersNew
+    PartiesNew <- PartyRelocator(Voters,Parties)
     if(all(mapply(identical,Parties,PartiesNew))){ #checks to see if the the updated and previous party positions are the same.  If they are, it stops everything.  
-      Parties <- PartiesNew
       cat("The Parties reached equilibrium positions after", i, "elections.\n")
+      if(visualize==TRUE){
+        points(PartiesNew[1,1],PartiesNew[1,2], col="blue", pch=15, cex=1.2)
+        points(PartiesNew[2,1],PartiesNew[2,2], col="red", pch=15, cex=1.2)
+        segments(x0=Parties[1,1],x1=PartiesNew[1,1],y0=Parties[1,2],y1=PartiesNew[1,2],col="blue")
+        segments(x0=Parties[2,1],x1=PartiesNew[2,1],y0=Parties[2,2],y1=PartiesNew[2,2],col="red")
+        text(PartiesNew[1,1],PartiesNew[1,2],"Final Position", pos=1) 
+        text(PartiesNew[2,1],PartiesNew[2,2],"Final Position", pos=1)
+      }
+      Parties <- PartiesNew
       break
+    }
+    if(visualize==TRUE){
+      points(PartiesNew[1,1],PartiesNew[1,2], col="blue", pch=20)
+      points(PartiesNew[2,1],PartiesNew[2,2], col="red", pch=20)
+      segments(x0=Parties[1,1],x1=PartiesNew[1,1],y0=Parties[1,2],y1=PartiesNew[1,2],col="blue")
+      segments(x0=Parties[2,1],x1=PartiesNew[2,1],y0=Parties[2,2],y1=PartiesNew[2,2],col="red")
+    }
+    if(i == nsims & visualize==TRUE){
+        points(PartiesNew[1,1],PartiesNew[1,2], col="blue", pch=15, cex=1.2)
+        points(PartiesNew[2,1],PartiesNew[2,2], col="red", pch=15, cex=1.2)
+        segments(x0=Parties[1,1],x1=PartiesNew[1,1],y0=Parties[1,2],y1=PartiesNew[1,2],col="blue")
+        segments(x0=Parties[2,1],x1=PartiesNew[2,1],y0=Parties[2,2],y1=PartiesNew[2,2],col="red")
+        text(PartiesNew[1,1],PartiesNew[1,2],"Final Position", pos=1) 
+        text(PartiesNew[2,1],PartiesNew[2,2],"Final Position", pos=1)
     }
     Parties <- PartiesNew #when positions aren't the same, the parties object is changed, and a new election occurs.  
   }
   return(list(Voters=Voters,Parties=Parties))
 }
 
-ElectoralSimulations(100)
+ElectoralSimulations(100,visualize=TRUE)
 
 #5. You will find it helpful (and fun!!!!!) to have some visualtion of this process, but note that this will slow up the speed of your simulations considerably.  
