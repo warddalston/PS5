@@ -13,7 +13,7 @@ library(pdist) #don't forget to install this if necessary!
 
 #Voter Distributions - A function for creating distributions of voter preferences
 
-#This function allows the user to a create a distribution of voters with preferences on two dimensions.  The user is allowed to choose one of five distributional set-ups from which preferences are drawn.  These are standard normals, normal distributions with user specified variances, uniform distributions, a multivariate normal with a user specified vector of means and variance-covariance matrix, and finally, up to three multivariate normal distributions, where each voter is equally likely to have her preferences drawn from each distribution. 
+#This function allows the user to a create a distribution of voters with preferences on two dimensions.  The user is allowed to choose one of five distributional set-ups from which preferences are drawn.  These are standard normals, normal distributions with user specified variances, uniform distributions, a multivariate normal with a user specified vector of means and variance-covariance matrix, and finally, up to three multivariate normal distributions, where each voter is equally likely to have her preferences drawn from each distribution. All of the arguments have a "V" in front of them.  This is so as to specify that these arguements impact the voter distribution draw, as opposed to the party distribution draw.  This is important for the ElectoralSimulations function below, but is not important here.  
 
 #input: Vn - the number of voters.  Defaults to 100
 #       Vdist - one of four values: "s" for standard normal, "n" for user specified normal, "u" for uniform, "m" for one of the multivariate options. Defaults to "s"
@@ -109,7 +109,7 @@ par(mfrow=c(1,1))
 
 #PartyStarter - A function to generate random ideal points for parties on two dimensions
 
-#This function allows the user to generate preferences for parties on 2 dimensions according to a number of distributions.  The user can specificy the parameters of all the distributions.  There are 3 distributions supported: the normal, the uniform, and the multivariate normal. For the normal distribution option, the user has the ability to choose difference mean and variance parameters for each distribution. The function is very similar to the VoterDistribution function above.  
+#This function allows the user to generate preferences for parties on 2 dimensions according to a number of distributions.  The user can specificy the parameters of all the distributions.  There are 3 distributions supported: the normal, the uniform, and the multivariate normal. For the normal distribution option, the user has the ability to choose difference mean and variance parameters for each distribution. The function is very similar to the VoterDistribution function above.  Each arguement has a "P" before it, this is to indicate that these arguments impact the party distribution parameters.  This is not important for this function, but matters for the ElectoralSimulations function, below, in which users can set the parameters of both voter and party distributions.  
 
 #input: Pn - the number of parties.  Defaults to 2.
 #       Pdist - the distribution used for creating preferences.  "n" for normal, "u" for uniform, and "m" for multivariate normal. Defaults to "n" 
@@ -188,11 +188,34 @@ Parties <- PartyRelocator(Voters,Parties)
 
 #ElectoralSimulations - A function for running a simple electoral simulations
 
-#This function creates simulated electorates and parties with preferences on a 2 dimensional policy space, then has voters choose a party to support, and finally has parties update thier positions based on thier voters.  The last two steps, voting and realignment, are then iterated by the model until the parties adopt the same positions 2 elections in a row, which constitues an electoral equilibrium.  Once this occurs the function breaks, and returning the voter preferences, party affilliation, and party preferences for the final election, as well as the number of elections. Four functions are used internally by the function: VoterDistribution, PartyStarter, VoterAffiliate, and PartyRelocator.  The user has control of the number of simulated elections, as well as the parameters and distributions from which voters are drawn.  The user can also choose whether or not to make a plot, where voters's ideal points and the paths of parties ideal points throughout the iterated "elections" are drawn.  A more specific description of the plot can be found below in the output section. 
+#This function creates simulated electorates and parties with preferences on a 2 dimensional policy space, then has voters choose a party to support, and finally has parties update thier positions based on thier voters. The user sets up the party and voter preference distributions using the arguements to the PartyStarter and VoterDistribution functions.  These arguments, which are used to control the the number of parties/voters to draw, the distribution from which their preferences are drawn, and the parameters of the given distribution, are largely the same for both parties and voters.  The only IMPORTANT DIFFERENCE between the party and voters arguments is that the voter arguments begin with "V" and the party arguments begin with "P".
 
-#input: nsims - the number of simulated elections to hold.  Defaults to 1.  Values less than 1 cause the function to break return a warning.  
+#The last two steps, voting and realignment, are then iterated by the model until the parties adopt the same positions 2 elections in a row, which constitues an electoral equilibrium.  Once this occurs the function breaks, and returning the voter preferences, party affilliation, and party preferences for the final election, as well as the number of elections. Four functions are used internally by the function: VoterDistribution, PartyStarter, VoterAffiliate, and PartyRelocator.  The user has control of the number of simulated elections, as well as the parameters and distributions from which voters are drawn.  
+
+#The user can also choose whether or not to make a plot, where voters's ideal points and the paths of parties ideal points throughout the iterated "elections" are drawn.  A more specific description of the plot can be found below in the output section. 
+
+#General input: nsims - the number of simulated elections to hold.  Defaults to 1.  Values less than 1 cause the function to break return a warning.  
 #       visualize - Whether or not to plot the voters and parties as the simulations occur.  Defaults to FALSE.
-#       ... - arguments passed to other functions.  These are things like dist, n, mu, and Sigma, which are used in the VoterDistribution and PartyStarter functions (with P or V before the arguements, P for use in the PartyStarter function and V for the VoterDistribution function).  
+
+#Input to set up Voter preference distribution:
+#        Vn - the number of voters.  Defaults to 100
+#       Vdist - one of four values: "s" for standard normal, "n" for user specified normal, "u" for uniform, "m" for one of the multivariate options. Defaults to "s"
+#       Vmeans - A vector of means for use in the "n" option.  Defaults to c(0,0)
+#       Vvars - a vector of two variances for use in the "n" option.  Defaults to c(1,1).
+#       Vmu - a 2 by d matrix of means for use in the multivariate normal distributions, where each column represents a vector of means for a multivariate normal distributions.  d represents the number of multivariate distributions from which preferences are drawn, it can be 1,2, or 3.  
+#       VSigma - a 2 by 2 by d array, where each table is a variance-covariance matrix for a multivariate normal distribution.  d represetns the number of multivariate distributions from which preferences are drawn, it can be 1,2 or 3. 
+#       Vmin - the minimum value for a uniform distribution.  Defaults to 0
+#       Vmax - the maximum value for a uniform distribution.  Defaults to 1
+
+#Input to set up the Party preference distribution:
+#       Pn - the number of parties.  Defaults to 2.
+#       Pdist - the distribution used for creating preferences.  "n" for normal, "u" for uniform, and "m" for multivariate normal. Defaults to "n" 
+#       Pvars - the vector of variances for use in a normal.  Should be of lenght two.  Defaults to c(1,1), which is the standard normal variance. 
+#       Pmeans - the vector of means for use in normals. Should be of length two.  Defaults to c(0,0), which is the standard normal mean.
+#       Pmin - the minimum, for use in a uniform distribution.  Defaults to 0.  
+#       Pmax - the maximum for use in a uniform distribution.  Defaults to 1.
+#       Pmu - the vector of means for use in a multivariate normal.  Should be length two.  Defaults to c(0,0)
+#       PSigma - the variance-covariance matrix for use in a multivariate normal.  Should be a positive definite 2 by 2 matrix.  Defaults to cbind(c(1,0),(0,1)). 
 
 #output: A list with two elements: the Voters object from the final election, containing voter preferences and party alignments, and the parties object from the final election, containing party ideal points.  Also prints a message informing the user of the number of simulated elections when an equilibrium is reached (if an equilibrium is reached within the user specified number of simulations) or the number of elections simulated without arriving at an equilibrium. 
 
@@ -200,7 +223,7 @@ Parties <- PartyRelocator(Voters,Parties)
 
 #Authors: Myunghoon Kang and Dalston Ward 
 
-ElectoralSimulations <- function(nsims=1,visualize=FALSE,...){
+ElectoralSimulations <- function(nsims=1,visualize=FALSE,Vn=100,Vdist="s",Vmeans=c(0,0),Vvars=c(1,1),Vmu=NULL,VSigma=NULL,Vmin=0,Vmax=1,Pn=2,Pdist="n",Pvars=c(1,1),Pmeans=c(0,0),Pmin=0,Pmax=1,Pmu=c(0,0),PSigma=cbind(c(1,0),c(0,1))){
   
   #don't give nsims the wrong input.  Please.  
   if(nsims < 1) {
@@ -208,8 +231,8 @@ ElectoralSimulations <- function(nsims=1,visualize=FALSE,...){
   }
   
   #The next two lines simply create the voter and party distributions
-  Voters <- VoterDistribution(...)
-  Parties <- PartyStarter(...)
+  Voters <- VoterDistribution(Vn=Vn,Vdist=Vdist,Vmeans=Vmeans,Vvars=Vvars,Vmu=Vmu,VSigma=VSigma,Vmin=Vmin,Vmax=Vmax)
+  Parties <- PartyStarter(Pn=Pn,Pdist=Pdist,Pvars=Pvars,Pmeans=Pmeans,Pmin=Pmin,Pmax=Pmax,Pmu=Pmu,PSigma=PSigma)
   
   #The first two lines carry out the first "election".  This always happens, regardless of the nsims value. 
   Voters <- VoterAffiliate(Voters,Parties)
@@ -271,6 +294,7 @@ ElectoralSimulations <- function(nsims=1,visualize=FALSE,...){
     }
     
     #these print the "Final Position" stuff for visualization when equilibrium isn't reached by the nsims point. 
+    if(i == nsims){   cat("No equilibrium was reached after",i,"elections \n") }
     if(i == nsims & visualize==TRUE){
         points(PartiesNew[1,1],PartiesNew[1,2], col="blue", pch=15, cex=1.2)
         points(PartiesNew[2,1],PartiesNew[2,2], col="red", pch=15, cex=1.2)
@@ -278,7 +302,6 @@ ElectoralSimulations <- function(nsims=1,visualize=FALSE,...){
         segments(x0=Parties[2,1],x1=PartiesNew[2,1],y0=Parties[2,2],y1=PartiesNew[2,2],col="red")
         text(PartiesNew[1,1],PartiesNew[1,2],"Final Position", pos=1) 
         text(PartiesNew[2,1],PartiesNew[2,2],"Final Position", pos=1)
-        cat("No equilibrium was reached after",i,"elections \n")
     }
     
     #this resets the parties object, to either be returned or used in the next "election"
@@ -288,6 +311,6 @@ ElectoralSimulations <- function(nsims=1,visualize=FALSE,...){
   return(list(Voters=Voters,Parties=Parties))
 } #close the function
 
-ElectoralSimulations(20,visualize=TRUE)
+ElectoralSimulations(1,visualize=TRUE, Vn=100,Vdist="n",Vmeans=c(3,10),Vvars=c(4,1))
 
 #5. You will find it helpful (and fun!!!!!) to have some visualtion of this process, but note that this will slow up the speed of your simulations considerably.  
