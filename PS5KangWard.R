@@ -67,37 +67,38 @@ VoterDistribution <- function(Vn=100,Vdist="s",Vmeans=c(0,0),Vvars=c(1,1),Vmu=NU
 
 VoterAffiliate <- function(Voters, Parties){
   ll <- pdist(Voters[,1:2],Parties)
-  distance <- matrix(ll@dist, ncol=2, byrow=TRUE) #calculates distance between voters and each party
-  affiliation <- distance[,1] < distance[,2] # If a voter is closer to party 1 than party 2 "TRUE", "FALSE" otherwise
-  #Note_DW: I changed "affil" to "affiliation", so that it's clearer throughout what exactly objects mean. 
-  affiliation[affiliation==TRUE] <- 1 #records 1 (short for party 1 - this keeps the matrix numeric.) for voters who are closer to party 1 than party 2
-  affiliation[affiliation==FALSE] <- 2 #records 2 (short for party 2 - again, this keeps the matric numeric) for voters who are closer to party 2 than party 1
+  distance <- matrix(ll@dist, ncol=nrow(Parties), byrow=TRUE) #calculates distance between voters and each party
+  MinDistance <- apply(distance, 1, min) #pick out the minimum distance 
+  affiliation <- distance==MinDistance  #i'th Row: voter i, i'th Columns:Partiy i, If the voter affiliates with a party, then the value is TRUE
+  affiliation <- affiliation %*% c(1:nrow(Parties)) #vector indicating affiliations of voters. values are 1,2,3,...,n.
   if(ncol(Voters)==2){
-  Voters <- cbind(Voters, affiliation) #affiliation of voters are added to the voter matrix
-  } else { Voters[,3] <- affiliation}
-  return(Voters)
-}
+      Voters <- cbind(Voters, affiliation) #affiliation of voters are added to the voter matrix
+    } else {Voters[,3] <- affiliation}
+    return(Voters)
+  } 
 
-Visual <- function(Voters, party){
-  plot(Voters[,1], Voters[,2], col=ifelse(Voters[,3]==1, "blue", "red"), 
-       xlab="Dimension 1", ylab="Dimension 2") #plot position of the voters
-                                               #blue for party 1, red for party 2
-                                               #x-axis is dimension 1, y-axis is dimension 2
-  points(party[1,1],party[1,2], col="blue", pch=19, cex=1.2) #points the position of party 1
-  points(party[2,1],party[2,2], col="red", pch=19, cex=1.2) #points the position of party 2
-  text(party[1,1],party[1,2],"Party 1", pos=1)  #changed the color of these to black, so that they show up better.  
-  text(party[2,1],party[2,2],"Party 2", pos=1)
+Visual <- function(Voters, Parties){
+  #this line set palette of colors. 1=blue, 2=red and so forth. 
+  palette(c("blue", "red", "forestgreen", "yellow", "darkorange", "maroon", "purple4", "chocolate4")) 
+  #plot the positions of the voters along two dimensions.
+  plot(Voters[,1], Voters[,2], col=Voters[,3], xlab="Dimension 1", ylab="Dimension 2", 
+       xlim=c(min(min(Voters[,1]),Parties[,1]),max(max(Voters[,1]),Parties[,1])),
+       ylim=c(min(min(Voters[,2]),Parties[,2]),max(max(Voters[,2]),Parties[,2])))
+  #Points the position for each party
+  mapply(points, x=Parties[,1], y=Parties[,2], col=1:nrow(Parties), MoreArgs=list(pch=20, cex=1.2))     
+  #labels the party name for each party (party 1, party 2, and so forth)                                              
+  mapply(text, x=Parties[,1], y=Parties[,2], labels=paste("Party",1:nrow(Parties)), MoreArgs=list(pos=1))
 }
- #Visual(Voters, Parties)
+ 
 
 par(mfrow=c(3,3))
 
 for(i in 1:9){ # try plot the positions of the parties, the positions of the voters and their
                # affiliation 9 times.
   Voters <- VoterDistribution()
-  party <- matrix(rnorm(4),ncol=2)
-  Voters <- VoterAffiliate(Voters, party)
-  Visual(Voters, party)
+  Parties <- matrix(rnorm(4),ncol=2)
+  Voters <- VoterAffiliate(Voters, Parties)
+  Visual(Voters, Parties)
   }
 
 par(mfrow=c(1,1))
@@ -158,12 +159,9 @@ PartyStarter <- function(Pn=2,Pdist="n",Pvars=c(1,1),Pmeans=c(0,0),Pmin=0,Pmax=1
 
 PartyRelocator <- function(Voters,Parties){
   Output <- matrix(ncol=ncol(Parties),nrow=nrow(Parties),dimnames=dimnames(Parties))
-  if(any(Voters[,3]==1)){
-  Output[1,] <- apply(Voters[Voters[,3]==1,1:2,drop=FALSE],2,mean)
-  } else {Output[1,] <- NA}
-  if(any(Voters[,3]==2)){
-  Output[2,] <- apply(Voters[Voters[,3]==2,1:2,drop=FALSE],2,mean)
-  } else {Output[2,] <- NA}
+  for(i in 1:nrow(Parties)){ 
+      Output[i,] <- apply(Voters[Voters[,3]==i,1:2],2,mean)
+  }
   return(Output)
 }
 
@@ -225,12 +223,7 @@ ElectoralSimulations <- function(nsims=1,visualize=FALSE, r.seed=NULL, Vn=100,Vd
   if(!is.null(r.seed)) set.seed(r.seed)
   
   #don't give nsims the wrong input.  Please.  
-  if(!nsims%%1==0){
-    stop("nsims must be an integer of at least 1!")
-  }
-  
-  #don't give nsims the wrong input.  Please.  
-  if(nsims < 1) {
+  if(!nsims%%1==0 | nsims < 1){
     stop("nsims must be an integer of at least 1!")
   }
   
@@ -242,6 +235,9 @@ ElectoralSimulations <- function(nsims=1,visualize=FALSE, r.seed=NULL, Vn=100,Vd
   Voters <- VoterAffiliate(Voters,Parties)
   PartiesNew <- PartyRelocator(Voters,Parties)
   
+  #This stores the initial party affiliations of voters.
+  init.Affil <- Voters[,3]
+  
   #stores the initial party position(character vector)
   PartiesHistory <- apply(Parties, 1, function(x) paste("(",x[1],", ",x[2],")", sep=""))
   
@@ -249,21 +245,20 @@ ElectoralSimulations <- function(nsims=1,visualize=FALSE, r.seed=NULL, Vn=100,Vd
   UpdateHistory <- apply(PartiesNew, 1, function(x) paste("(",x[1],", ",x[2],")", sep=""))
   PartiesHistory <- c(PartiesHistory, UpdateHistory)
   
+  #this line set palette of colors. 1=blue, 2=red and so forth. 
+  palette(c("blue", "red", "forestgreen", "yellow", "darkorange", "maroon", "purple4", "chocolate4")) 
+  
   #the next several lines are only used when visualizing. 
   if(visualize==TRUE){
     Visual(Voters,Parties) #make a base plot using initial voter affiliation and party preferences
     if(!nsims==1){
       #update the party positions on the plot normally if there is more than 1 election 
-      points(PartiesNew[1,1],PartiesNew[1,2], col="blue", pch=20)
-      points(PartiesNew[2,1],PartiesNew[2,2], col="red", pch=20)
+      mapply(points, x=PartiesNew[,1], y=PartiesNew[,2], col=1:Pn, MoreArgs=list(pch=20, cex=1.2))
     } else { #where there's only a single election (a single simulation), then this makes the plot have squares to represent the final position 
-      points(PartiesNew[1,1],PartiesNew[1,2], col="blue", pch=15)
-      points(PartiesNew[2,1],PartiesNew[2,2], col="red", pch=15)
-      text(PartiesNew[1,1],PartiesNew[1,2],"Final Position", pos=1) 
-      text(PartiesNew[2,1],PartiesNew[2,2],"Final Position", pos=1)
+      mapply(points, x=PartiesNew[,1], y=PartiesNew[,2], col=1:Pn, MoreArgs=list(pch=15, cex=1.2))
+      mapply(text, x=PartiesNew[,1], y=PartiesNew[,2], MoreArgs=list(labels="Final Position", pos=1))
     } #regardlesss of the subsequent number of elections, use segments to connect the party positions
-    segments(x0=Parties[1,1],x1=PartiesNew[1,1],y0=Parties[1,2],y1=PartiesNew[1,2],col="blue")
-    segments(x0=Parties[2,1],x1=PartiesNew[2,1],y0=Parties[2,2],y1=PartiesNew[2,2],col="red")
+    mapply(segments, x0=Parties[,1], x1=PartiesNew[,1], y0=Parties[,2], y1=PartiesNew[,2], col=1:Pn)
   }
   
   #update this and get ready for the next election. 
@@ -273,12 +268,7 @@ ElectoralSimulations <- function(nsims=1,visualize=FALSE, r.seed=NULL, Vn=100,Vd
   if(nsims > 1){
     for(i in 2:nsims){ #iterates according to nsims.  I think this is the appropriate use of a for loop.
       VotersNew <- VoterAffiliate(Voters,Parties) #hold a new election, generating a new voter object
-      
-      if(visualize==TRUE){
-        points(x=Voters[Voters[,3]!=VotersNew[,3],1],y=Voters[Voters[,3]!=VotersNew[,3],2],col=ifelse(Voters[,3]==1, "blue", "red")) #use this voter object to repaint voters who switch parties in the new elections.  These voters will now have purple circles ( because red + blue = purple.)  The more "purple-ish" a voter, the more often she has switched parties! 
-      }
-      
-      Voters <- VotersNew #after the "election results" have been plotted, reassign the VotersNew object to Voters, getting ready for the new "election"
+      Voters <- VotersNew #reassign the VotersNew object to Voters, getting ready for the new "election"
       
       #The parties then update based on the current "election"
       PartiesNew <- PartyRelocator(Voters,Parties)
@@ -287,12 +277,10 @@ ElectoralSimulations <- function(nsims=1,visualize=FALSE, r.seed=NULL, Vn=100,Vd
       if(all(mapply(identical,Parties,PartiesNew))){  
         cat("The Parties reached equilibrium positions after", i, "elections.\n") 
         if(visualize==TRUE){
-          points(PartiesNew[1,1],PartiesNew[1,2], col="blue", pch=15, cex=1.2)
-          points(PartiesNew[2,1],PartiesNew[2,2], col="red", pch=15, cex=1.2)
-          segments(x0=Parties[1,1],x1=PartiesNew[1,1],y0=Parties[1,2],y1=PartiesNew[1,2],col="blue")
-          segments(x0=Parties[2,1],x1=PartiesNew[2,1],y0=Parties[2,2],y1=PartiesNew[2,2],col="red")
-          text(PartiesNew[1,1],PartiesNew[1,2],"Final Position", pos=1) 
-          text(PartiesNew[2,1],PartiesNew[2,2],"Final Position", pos=1)
+          mapply(points, x=PartiesNew[,1], y=PartiesNew[,2], col=1:Pn, MoreArgs=list(pch=15, cex=1.2))
+          mapply(segments, x0=Parties[,1], x1=PartiesNew[,1], y0=Parties[,2], y1=PartiesNew[,2], col=1:Pn)
+          mapply(text, x=PartiesNew[,1], y=PartiesNew[,2], MoreArgs=list(labels="Final Position", pos=1))
+          points(x=Voters[initial.affil!=Voters[,3],1],y=Voters[initial.affil!=Voters[,3],2],col=Voters[initial.affil!=Voters[,3],3],pch=16)
         }
         Parties <- PartiesNew
         
@@ -305,21 +293,17 @@ ElectoralSimulations <- function(nsims=1,visualize=FALSE, r.seed=NULL, Vn=100,Vd
       
       #after every "election" and "party update", if visualization is on, the parties' new positions are plotted, and connected to thier old position with a line segment.  The plotting character is a small circle, which differentiates it from the starting position (a large circle) and the last position (a square)
       if(visualize==TRUE){
-        points(PartiesNew[1,1],PartiesNew[1,2], col="blue", pch=20)
-        points(PartiesNew[2,1],PartiesNew[2,2], col="red", pch=20)
-        segments(x0=Parties[1,1],x1=PartiesNew[1,1],y0=Parties[1,2],y1=PartiesNew[1,2],col="blue")
-        segments(x0=Parties[2,1],x1=PartiesNew[2,1],y0=Parties[2,2],y1=PartiesNew[2,2],col="red")
+       mapply(points, x=PartiesNew[,1], y=PartiesNew[,2], col=1:Pn, MoreArgs=list(pch=20, cex=1.2))
+       mapply(segments, x0=Parties[,1], x1=PartiesNew[,1], y0=Parties[,2], y1=PartiesNew[,2], col=1:Pn)
       }
       
       #these print the "Final Position" stuff for visualization when equilibrium isn't reached by the nsims point. 
       if(i == nsims){   cat("No equilibrium was reached after",i,"elections \n") }
       if(i == nsims & visualize==TRUE){
-        points(PartiesNew[1,1],PartiesNew[1,2], col="blue", pch=15, cex=1.2)
-        points(PartiesNew[2,1],PartiesNew[2,2], col="red", pch=15, cex=1.2)
-        segments(x0=Parties[1,1],x1=PartiesNew[1,1],y0=Parties[1,2],y1=PartiesNew[1,2],col="blue")
-        segments(x0=Parties[2,1],x1=PartiesNew[2,1],y0=Parties[2,2],y1=PartiesNew[2,2],col="red")
-        text(PartiesNew[1,1],PartiesNew[1,2],"Final Position", pos=1) 
-        text(PartiesNew[2,1],PartiesNew[2,2],"Final Position", pos=1)
+        mapply(points, x=PartiesNew[,1], y=PartiesNew[,2], col=1:Pn, MoreArgs=list(pch=15, cex=1.2))
+        mapply(segments, x0=Parties[,1], x1=PartiesNew[,1], y0=Parties[,2], y1=PartiesNew[,2], col=1:Pn)
+        mapply(text, x=PartiesNew[,1], y=PartiesNew[,2], MoreArgs=list(labels="Final Position", pos=1))
+        points(x=Voters[initial.affil!=Voters[,3],1],y=Voters[initial.affil!=Voters[,3],2],col=Voters[initial.affil!=Voters[,3],3],pch=16)
       }
       
       #this resets the parties object, to either be returned or used in the next "election"
