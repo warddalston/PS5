@@ -260,7 +260,10 @@ ElectoralSimulations <- function(nsims=1,visualize=FALSE,Vn=100,Vdist="s",Vmeans
     segments(x0=Parties[2,1],x1=PartiesNew[2,1],y0=Parties[2,2],y1=PartiesNew[2,2],col="red")
   }
   
-  #Now, we check if there is more than a single "election".  If so, it executes the required number of elections.  If not, it changes PartiesNew to Parties, and returns the Voters and Parties objects.
+  #set up the parties object for the next election.
+  Parties <- PartiesNew
+  
+  #Now, we check if there is more than a single "election".  If so, it executes the required number of elections.  If not, it breaks and returns the Voters and Parties objects.
   
   if(nsims > 1){
   for(i in 2:nsims){ #iterates according to nsims.  I think this is the appropriate use of a for loop.
@@ -312,7 +315,7 @@ ElectoralSimulations <- function(nsims=1,visualize=FALSE,Vn=100,Vdist="s",Vmeans
     #this resets the parties object, to either be returned or used in the next "election"
     Parties <- PartiesNew 
   } #closes the for loop
-  } else { Parties <- PartiesNew } #close the if loop (and add an else statement)
+  } #Close the if loop
   return(list(Voters=Voters,Parties=Parties))
 } #close the function
 
@@ -333,7 +336,7 @@ ElectoralSimulations(100,visualize=TRUE, Vn=100,Vdist="n",Vmeans=c(3,10),Vvars=c
 
 #ElectoralSimulations - A function for running a simple electoral simulations
 
-#This function creates simulated electorates and parties with preferences on a 2 dimensional policy space, then has voters choose a party to support, and finally has parties update thier positions based on thier voters. The user sets up the party and voter preference distributions using the arguements to the PartyStarter and VoterDistribution functions.  These arguments, which are used to control the the number of parties/voters to draw, the distribution from which their preferences are drawn, and the parameters of the given distribution, are largely the same for both parties and voters.  The only IMPORTANT DIFFERENCE between the party and voters arguments is that the voter arguments begin with "V" and the party arguments begin with "P".
+#This function creates simulated electorates and parties with preferences on a 2 dimensional policy space, then has voters choose a party to support, and finally has parties update thier positions based on thier voters. The user sets up the party and voter preference distributions using the arguements to the PartyStarter and VoterDistribution functions.  These arguments, which are used to control the the number of parties/voters to draw, the distribution from which their preferences are drawn, and the parameters of the given distribution, are largely the same for both parties and voters.  The only IMPORTANT DIFFERENCE between the party and voters arguments is that the voter arguments begin with "V" and the party arguments begin with "P". Reproducible distirbutions can be created by using the r.seed arguement.  
 
 #The last two steps, voting and realignment, are then iterated by the model until the parties adopt the same positions 2 elections in a row, which constitues an electoral equilibrium.  Once this occurs the function breaks, and returning the voter preferences, party affilliation, and party preferences for the final election, as well as the number of elections. Four functions are used internally by the function: VoterDistribution, PartyStarter, VoterAffiliate, and PartyRelocator.  The user has control of the number of simulated elections, as well as the parameters and distributions from which voters are drawn.  
 
@@ -416,7 +419,9 @@ if(visualize==TRUE){
   segments(x0=Parties[2,1],x1=PartiesNew[2,1],y0=Parties[2,2],y1=PartiesNew[2,2],col="red")
 }
 
-#Now, we check if there is more than a single "election".  If so, it executes the required number of elections.  If not, it changes PartiesNew to Parties, and returns the Voters and Parties objects.
+#update this and get ready for the next election. 
+Parties <- PartiesNew
+#Now, we check if there is more than a single "election".  If so, it executes the required number of elections.  If not, it returns the Voters and Parties objects.
 
 if(nsims > 1){
   for(i in 2:nsims){ #iterates according to nsims.  I think this is the appropriate use of a for loop.
@@ -481,7 +486,7 @@ if(nsims > 1){
     names(PartiesHistory) <- paste(names(PartiesHistory),"-", rep(0:nsims, rep(Pn,nsims+1)), sep="")
  } else {
      names(PartiesHistory) <- paste(names(PartiesHistory),"-", rep(0:nsims, rep(Pn,nsims+1)), sep="")
-    } #close the if loop (and add an else statement)
+    } #close the if loop 
 return(PartiesHistory)
 } #close the function
 
