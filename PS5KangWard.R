@@ -280,7 +280,7 @@ ElectoralSimulations <- function(nsims=1,visualize=FALSE, r.seed=NULL, Vn=100,Vd
           mapply(points, x=PartiesNew[,1], y=PartiesNew[,2], col=1:Pn, MoreArgs=list(pch=15, cex=1.2))
           mapply(segments, x0=Parties[,1], x1=PartiesNew[,1], y0=Parties[,2], y1=PartiesNew[,2], col=1:Pn)
           mapply(text, x=PartiesNew[,1], y=PartiesNew[,2], MoreArgs=list(labels="Final Position", pos=1))
-          points(x=Voters[initial.affil!=Voters[,3],1],y=Voters[initial.affil!=Voters[,3],2],col=Voters[initial.affil!=Voters[,3],3],pch=16)
+          points(x=Voters[init.Affil!=Voters[,3],1],y=Voters[init.Affil!=Voters[,3],2],col=Voters[init.Affil!=Voters[,3],3],pch=16)
         }
         Parties <- PartiesNew
         
@@ -303,7 +303,7 @@ ElectoralSimulations <- function(nsims=1,visualize=FALSE, r.seed=NULL, Vn=100,Vd
         mapply(points, x=PartiesNew[,1], y=PartiesNew[,2], col=1:Pn, MoreArgs=list(pch=15, cex=1.2))
         mapply(segments, x0=Parties[,1], x1=PartiesNew[,1], y0=Parties[,2], y1=PartiesNew[,2], col=1:Pn)
         mapply(text, x=PartiesNew[,1], y=PartiesNew[,2], MoreArgs=list(labels="Final Position", pos=1))
-        points(x=Voters[initial.affil!=Voters[,3],1],y=Voters[initial.affil!=Voters[,3],2],col=Voters[initial.affil!=Voters[,3],3],pch=16)
+        points(x=Voters[init.Affil!=Voters[,3],1],y=Voters[init.Affil!=Voters[,3],2],col=Voters[init.Affil!=Voters[,3],3],pch=16)
       }
       
       #this resets the parties object, to either be returned or used in the next "election"
