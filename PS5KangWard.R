@@ -226,6 +226,11 @@ Parties <- PartyRelocator(Voters,Parties)
 ElectoralSimulations <- function(nsims=1,visualize=FALSE,Vn=100,Vdist="s",Vmeans=c(0,0),Vvars=c(1,1),Vmu=NULL,VSigma=NULL,Vmin=0,Vmax=1,Pn=2,Pdist="n",Pvars=c(1,1),Pmeans=c(0,0),Pmin=0,Pmax=1,Pmu=c(0,0),PSigma=cbind(c(1,0),c(0,1))){
   
   #don't give nsims the wrong input.  Please.  
+  if(!nsims%%1==0){
+    stop("nsims must be an integer of at least 1!")
+  }
+  
+  #don't give nsims the wrong input.  Please.  
   if(nsims < 1) {
     stop("nsims must be a numeric of at least 1!")
   }
@@ -311,6 +316,176 @@ ElectoralSimulations <- function(nsims=1,visualize=FALSE,Vn=100,Vdist="s",Vmeans
   return(list(Voters=Voters,Parties=Parties))
 } #close the function
 
-ElectoralSimulations(1,visualize=TRUE, Vn=100,Vdist="n",Vmeans=c(3,10),Vvars=c(4,1))
+ElectoralSimulations(100,visualize=TRUE, Vn=100,Vdist="n",Vmeans=c(3,10),Vvars=c(4,1))
 
 #5. You will find it helpful (and fun!!!!!) to have some visualtion of this process, but note that this will slow up the speed of your simulations considerably.  
+
+
+
+#### Section C: Explore your model
+
+#1. Alter your function so it takes as an input:
+# - Parameter for choosing the distribution of voters
+# - A random seed
+# - The number of total iterations
+#2. The output of the function shuld be the vector of positions the parties take throughout the simulation. 
+
+
+#ElectoralSimulations - A function for running a simple electoral simulations
+
+#This function creates simulated electorates and parties with preferences on a 2 dimensional policy space, then has voters choose a party to support, and finally has parties update thier positions based on thier voters. The user sets up the party and voter preference distributions using the arguements to the PartyStarter and VoterDistribution functions.  These arguments, which are used to control the the number of parties/voters to draw, the distribution from which their preferences are drawn, and the parameters of the given distribution, are largely the same for both parties and voters.  The only IMPORTANT DIFFERENCE between the party and voters arguments is that the voter arguments begin with "V" and the party arguments begin with "P".
+
+#The last two steps, voting and realignment, are then iterated by the model until the parties adopt the same positions 2 elections in a row, which constitues an electoral equilibrium.  Once this occurs the function breaks, and returning the voter preferences, party affilliation, and party preferences for the final election, as well as the number of elections. Four functions are used internally by the function: VoterDistribution, PartyStarter, VoterAffiliate, and PartyRelocator.  The user has control of the number of simulated elections, as well as the parameters and distributions from which voters are drawn.  
+
+#The user can also choose whether or not to make a plot, where voters's ideal points and the paths of parties ideal points throughout the iterated "elections" are drawn.  A more specific description of the plot can be found below in the output section. 
+
+#General input: nsims - the number of simulated elections to hold.  Defaults to 1.  Values less than 1 cause the function to break return a warning.  
+#               visualize - Whether or not to plot the voters and parties as the simulations occur.  Defaults to FALSE.
+#               r.seed - a random seed. Defaults to be NULL
+
+#Input to set up Voter preference distribution:
+#        Vn - the number of voters.  Defaults to 100
+#       Vdist - one of four values: "s" for standard normal, "n" for user specified normal, "u" for uniform, "m" for one of the multivariate options. Defaults to "s"
+#       Vmeans - A vector of means for use in the "n" option.  Defaults to c(0,0)
+#       Vvars - a vector of two variances for use in the "n" option.  Defaults to c(1,1).
+#       Vmu - a 2 by d matrix of means for use in the multivariate normal distributions, where each column represents a vector of means for a multivariate normal distributions.  d represents the number of multivariate distributions from which preferences are drawn, it can be 1,2, or 3.  
+#       VSigma - a 2 by 2 by d array, where each table is a variance-covariance matrix for a multivariate normal distribution.  d represetns the number of multivariate distributions from which preferences are drawn, it can be 1,2 or 3. 
+#       Vmin - the minimum value for a uniform distribution.  Defaults to 0
+#       Vmax - the maximum value for a uniform distribution.  Defaults to 1
+
+#Input to set up the Party preference distribution:
+#       Pn - the number of parties.  Defaults to 2.
+#       Pdist - the distribution used for creating preferences.  "n" for normal, "u" for uniform, and "m" for multivariate normal. Defaults to "n" 
+#       Pvars - the vector of variances for use in a normal.  Should be of lenght two.  Defaults to c(1,1), which is the standard normal variance. 
+#       Pmeans - the vector of means for use in normals. Should be of length two.  Defaults to c(0,0), which is the standard normal mean.
+#       Pmin - the minimum, for use in a uniform distribution.  Defaults to 0.  
+#       Pmax - the maximum for use in a uniform distribution.  Defaults to 1.
+#       Pmu - the vector of means for use in a multivariate normal.  Should be length two.  Defaults to c(0,0)
+#       PSigma - the variance-covariance matrix for use in a multivariate normal.  Should be a positive definite 2 by 2 matrix.  Defaults to cbind(c(1,0),(0,1)). 
+
+#output: the vector of positions the parties take throughout the simulation
+
+#If visualize==TRUE, then a plot is also created.  This plot contains a single unfilled circle for each voter, which is colored blue or red depending on the voter's party affiliation.  When a voter switches party affiliation, a new circle of the other color is plotted over the original circle, resulting in a purple circle.  This indiciates a voter who has switched affiliation.  The more "bluish-purple" indicates the voter has switched from the red to the blue side more often, while the more "redish-purple" indicates the voter has switched to the red side from the blue side more.  The locations of the parties are also plotted.  Thier initial positions are plotted with a large filled circle, with the text "party X" written underneath, where X is the party number.  Subsequent party positions are represented by small filled cirlces connected by line segments.  The party position in the last iteration (either because the simluation reached equilibrium or beacuse the total of nsims iterations were ran) is represented by a large filled square, with the text "Final Position" written underneath.    
+
+#Authors: Myunghoon Kang and Dalston Ward 
+
+ElectoralSimulations <- function(nsims=1,visualize=FALSE, r.seed=NULL, Vn=100,Vdist="s",Vmeans=c(0,0),Vvars=c(1,1),Vmu=NULL,VSigma=NULL,Vmin=0,Vmax=1,Pn=2,Pdist="n",Pvars=c(1,1),Pmeans=c(0,0),Pmin=0,Pmax=1,Pmu=c(0,0),PSigma=cbind(c(1,0),c(0,1))){
+
+# set a random seed if a user gives input of a random seed. 
+if(!is.null(r.seed)) set.seed(r.seed)
+
+#don't give nsims the wrong input.  Please.  
+if(!nsims%%1==0){
+  stop("nsims must be an integer of at least 1!")
+}
+
+#don't give nsims the wrong input.  Please.  
+if(nsims < 1) {
+  stop("nsims must be an integer of at least 1!")
+}
+
+#The next two lines simply create the voter and party distributions
+Voters <- VoterDistribution(Vn=Vn,Vdist=Vdist,Vmeans=Vmeans,Vvars=Vvars,Vmu=Vmu,VSigma=VSigma,Vmin=Vmin,Vmax=Vmax)
+Parties <- PartyStarter(Pn=Pn,Pdist=Pdist,Pvars=Pvars,Pmeans=Pmeans,Pmin=Pmin,Pmax=Pmax,Pmu=Pmu,PSigma=PSigma)
+
+#The first two lines carry out the first "election".  This always happens, regardless of the nsims value. 
+Voters <- VoterAffiliate(Voters,Parties)
+PartiesNew <- PartyRelocator(Voters,Parties)
+
+#stores the initial party position(character vector)
+PartiesHistory <- apply(Parties, 1, function(x) paste("(",x[1],", ",x[2],")", sep=""))
+
+#this records the current positions of parties (Character vector) 
+UpdateHistory <- apply(PartiesNew, 1, function(x) paste("(",x[1],", ",x[2],")", sep=""))
+PartiesHistory <- c(PartiesHistory, UpdateHistory)
+
+#the next several lines are only used when visualizing. 
+if(visualize==TRUE){
+  Visual(Voters,Parties) #make a base plot using initial voter affiliation and party preferences
+  if(!nsims==1){
+    #update the party positions on the plot normally if there is more than 1 election 
+    points(PartiesNew[1,1],PartiesNew[1,2], col="blue", pch=20)
+    points(PartiesNew[2,1],PartiesNew[2,2], col="red", pch=20)
+  } else { #where there's only a single election (a single simulation), then this makes the plot have squares to represent the final position 
+    points(PartiesNew[1,1],PartiesNew[1,2], col="blue", pch=15)
+    points(PartiesNew[2,1],PartiesNew[2,2], col="red", pch=15)
+    text(PartiesNew[1,1],PartiesNew[1,2],"Final Position", pos=1) 
+    text(PartiesNew[2,1],PartiesNew[2,2],"Final Position", pos=1)
+  } #regardlesss of the subsequent number of elections, use segments to connect the party positions
+  segments(x0=Parties[1,1],x1=PartiesNew[1,1],y0=Parties[1,2],y1=PartiesNew[1,2],col="blue")
+  segments(x0=Parties[2,1],x1=PartiesNew[2,1],y0=Parties[2,2],y1=PartiesNew[2,2],col="red")
+}
+
+#Now, we check if there is more than a single "election".  If so, it executes the required number of elections.  If not, it changes PartiesNew to Parties, and returns the Voters and Parties objects.
+
+if(nsims > 1){
+  for(i in 2:nsims){ #iterates according to nsims.  I think this is the appropriate use of a for loop.
+    VotersNew <- VoterAffiliate(Voters,Parties) #hold a new election, generating a new voter object
+    
+    if(visualize==TRUE){
+      points(x=Voters[Voters[,3]!=VotersNew[,3],1],y=Voters[Voters[,3]!=VotersNew[,3],2],col=ifelse(Voters[,3]==1, "blue", "red")) #use this voter object to repaint voters who switch parties in the new elections.  These voters will now have purple circles ( because red + blue = purple.)  The more "purple-ish" a voter, the more often she has switched parties! 
+    }
+    
+    Voters <- VotersNew #after the "election results" have been plotted, reassign the VotersNew object to Voters, getting ready for the new "election"
+    
+    #The parties then update based on the current "election"
+    PartiesNew <- PartyRelocator(Voters,Parties)
+            
+    #checks to see if the the updated and previous party positions are the same.  If they are, it stops everything, and this combination of affiliations and party positions is determined to be an "equilibrium"  
+    if(all(mapply(identical,Parties,PartiesNew))){  
+      cat("The Parties reached equilibrium positions after", i, "elections.\n") 
+      if(visualize==TRUE){
+        points(PartiesNew[1,1],PartiesNew[1,2], col="blue", pch=15, cex=1.2)
+        points(PartiesNew[2,1],PartiesNew[2,2], col="red", pch=15, cex=1.2)
+        segments(x0=Parties[1,1],x1=PartiesNew[1,1],y0=Parties[1,2],y1=PartiesNew[1,2],col="blue")
+        segments(x0=Parties[2,1],x1=PartiesNew[2,1],y0=Parties[2,2],y1=PartiesNew[2,2],col="red")
+        text(PartiesNew[1,1],PartiesNew[1,2],"Final Position", pos=1) 
+        text(PartiesNew[2,1],PartiesNew[2,2],"Final Position", pos=1)
+      }
+      Parties <- PartiesNew
+      
+      #this records the current positions of parties (Character vector) 
+      UpdateHistory <- apply(PartiesNew, 1, function(x) paste("(",x[1],", ",x[2],")", sep=""))
+      PartiesHistory <- c(PartiesHistory, UpdateHistory)
+      names(PartiesHistory) <- paste(names(PartiesHistory),"-", rep(0:i, rep(Pn,i+1)), sep="")
+      return(PartiesHistory)
+    }
+    
+    #after every "election" and "party update", if visualization is on, the parties' new positions are plotted, and connected to thier old position with a line segment.  The plotting character is a small circle, which differentiates it from the starting position (a large circle) and the last position (a square)
+    if(visualize==TRUE){
+      points(PartiesNew[1,1],PartiesNew[1,2], col="blue", pch=20)
+      points(PartiesNew[2,1],PartiesNew[2,2], col="red", pch=20)
+      segments(x0=Parties[1,1],x1=PartiesNew[1,1],y0=Parties[1,2],y1=PartiesNew[1,2],col="blue")
+      segments(x0=Parties[2,1],x1=PartiesNew[2,1],y0=Parties[2,2],y1=PartiesNew[2,2],col="red")
+    }
+    
+    #these print the "Final Position" stuff for visualization when equilibrium isn't reached by the nsims point. 
+    if(i == nsims){   cat("No equilibrium was reached after",i,"elections \n") }
+    if(i == nsims & visualize==TRUE){
+      points(PartiesNew[1,1],PartiesNew[1,2], col="blue", pch=15, cex=1.2)
+      points(PartiesNew[2,1],PartiesNew[2,2], col="red", pch=15, cex=1.2)
+      segments(x0=Parties[1,1],x1=PartiesNew[1,1],y0=Parties[1,2],y1=PartiesNew[1,2],col="blue")
+      segments(x0=Parties[2,1],x1=PartiesNew[2,1],y0=Parties[2,2],y1=PartiesNew[2,2],col="red")
+      text(PartiesNew[1,1],PartiesNew[1,2],"Final Position", pos=1) 
+      text(PartiesNew[2,1],PartiesNew[2,2],"Final Position", pos=1)
+    }
+    
+    #this resets the parties object, to either be returned or used in the next "election"
+    Parties <- PartiesNew 
+    
+    #this records the current positions of parties (Character vector) 
+    UpdateHistory <- apply(PartiesNew, 1, function(x) paste("(",x[1],", ",x[2],")", sep=""))
+    PartiesHistory <- c(PartiesHistory, UpdateHistory)
+          
+  } #closes the for loop
+    names(PartiesHistory) <- paste(names(PartiesHistory),"-", rep(0:nsims, rep(Pn,nsims+1)), sep="")
+ } else {
+     names(PartiesHistory) <- paste(names(PartiesHistory),"-", rep(0:nsims, rep(Pn,nsims+1)), sep="")
+    } #close the if loop (and add an else statement)
+return(PartiesHistory)
+} #close the function
+
+ElectoralSimulations(nsims=1.5)
+ElectoralSimulations(nsims=10)
+
+
