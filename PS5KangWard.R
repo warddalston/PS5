@@ -8,6 +8,10 @@ rm(list=ls())
 #Second, load necessary packages
 library(MASS)
 library(pdist) #don't forget to install this if necessary! 
+library(plyr)
+library(doMC)
+library(multicore)
+library(foreach)
 
 ##### Section A: Simulation Set Up
 
@@ -154,8 +158,12 @@ PartyStarter <- function(Pn=2,Pdist="n",Pvars=c(1,1),Pmeans=c(0,0),Pmin=0,Pmax=1
 
 PartyRelocator <- function(Voters,Parties){
   Output <- matrix(ncol=ncol(Parties),nrow=nrow(Parties),dimnames=dimnames(Parties))
-  Output[1,] <- apply(Voters[Voters[,3]==1,1:2],2,mean)
-  Output[2,] <- apply(Voters[Voters[,3]==2,1:2],2,mean)
+  if(any(Voters[,3]==1)){
+  Output[1,] <- apply(Voters[Voters[,3]==1,1:2,drop=FALSE],2,mean)
+  } else {Output[1,] <- NA}
+  if(any(Voters[,3]==2)){
+  Output[2,] <- apply(Voters[Voters[,3]==2,1:2,drop=FALSE],2,mean)
+  } else {Output[2,] <- NA}
   return(Output)
 }
 
@@ -212,7 +220,7 @@ PartyRelocator <- function(Voters,Parties){
 #Authors: Myunghoon Kang and Dalston Ward 
 
 ElectoralSimulations <- function(nsims=1,visualize=FALSE, r.seed=NULL, Vn=100,Vdist="s",Vmeans=c(0,0),Vvars=c(1,1),Vmu=NULL,VSigma=NULL,Vmin=0,Vmax=1,Pn=2,Pdist="n",Pvars=c(1,1),Pmeans=c(0,0),Pmin=0,Pmax=1,Pmu=c(0,0),PSigma=cbind(c(1,0),c(0,1))){
-  
+
   # set a random seed if a user gives input of a random seed. 
   if(!is.null(r.seed)) set.seed(r.seed)
   
@@ -326,9 +334,20 @@ ElectoralSimulations <- function(nsims=1,visualize=FALSE, r.seed=NULL, Vn=100,Vd
   } else {
     names(PartiesHistory) <- paste(names(PartiesHistory),"-", rep(0:nsims, rep(Pn,nsims+1)), sep="")
   } #close the if loop 
-  return(list(PartiesHistory=PartiesHistory,Voters=Voters,Parties=Parties)
+  return(list(PartiesHistory=PartiesHistory,Voters=Voters,Parties=Parties))
 } #close the function
 
-ElectoralSimulations(100,visualize=TRUE, r.seed=1801, Vn=100,Vdist="n",Vmeans=c(3,10),Vvars=c(4,1))
+out <- ElectoralSimulations(100,visualize=TRUE, r.seed=1801, Vn=100,Vdist="n",Vmeans=c(3,10),Vvars=c(4,1))
 
 #5. You will find it helpful (and fun!!!!!) to have some visualtion of this process, but note that this will slow up the speed of your simulations considerably.  
+
+Run <- expand.grid(Vn=10:50,Vvars1=seq(1,5,.1),Vvars2=1)
+
+registerDoMC(cores=4)
+
+
+BIG <- alply(.data=Run, .margins=1, .fun=function(x){
+  x <- unlist(x)
+  print(ElectoralSimulations(100,Vn=x[1],Vvars=c(x[2],x[3]),Vdist="n"))
+  },.parallel=TRUE)
+
