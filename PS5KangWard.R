@@ -255,7 +255,10 @@ ElectoralSimulations <- function(nsims=1,visualize=FALSE,Vn=100,Vdist="s",Vmeans
     segments(x0=Parties[2,1],x1=PartiesNew[2,1],y0=Parties[2,2],y1=PartiesNew[2,2],col="red")
   }
   
-  #Now, we check if there is more than a single "election".  If so, it executes the required number of elections.  If not, it changes PartiesNew to Parties, and returns the Voters and Parties objects.
+  #get the parties object ready for the next election
+  Parties <- PartiesNew
+  
+  #Now, we check if there is more than a single "election".  If so, it executes the required number of elections.  If not, it returns the Voters and Parties objects.
   
   if(nsims > 1){
   for(i in 2:nsims){ #iterates according to nsims.  I think this is the appropriate use of a for loop.
@@ -307,7 +310,7 @@ ElectoralSimulations <- function(nsims=1,visualize=FALSE,Vn=100,Vdist="s",Vmeans
     #this resets the parties object, to either be returned or used in the next "election"
     Parties <- PartiesNew 
   } #closes the for loop
-  } else { Parties <- PartiesNew } #close the if loop (and add an else statement)
+  } else #close the if loop
   return(list(Voters=Voters,Parties=Parties))
 } #close the function
 
