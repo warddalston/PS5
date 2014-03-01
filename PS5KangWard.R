@@ -162,6 +162,13 @@ PartyRelocator <- function(Voters,Parties){
   for(i in 1:nrow(Parties)){ 
       Output[i,] <- apply(Voters[Voters[,3]==i,1:2],2,mean)
   }
+  Output[!complete.cases(Output),] <- 100000000 #if a party did not get any votes from voters then
+                                                #the party will be eliminated from simulation
+                                                #by setting their positions a large number.
+                                                #So, in the following plot, the eliminated party will be described 
+                                                #as going outside the plot box.
+                                                #Also, their positions will be recorded as 1.00000e+05.
+                                                
   return(Output)
 }
 
@@ -279,8 +286,8 @@ ElectoralSimulations <- function(nsims=1,visualize=FALSE, r.seed=NULL, Vn=100,Vd
         if(visualize==TRUE){
           mapply(points, x=PartiesNew[,1], y=PartiesNew[,2], col=1:Pn, MoreArgs=list(pch=15, cex=1.2))
           mapply(segments, x0=Parties[,1], x1=PartiesNew[,1], y0=Parties[,2], y1=PartiesNew[,2], col=1:Pn)
-          mapply(text, x=PartiesNew[,1], y=PartiesNew[,2], MoreArgs=list(labels="Final Position", pos=1))
           points(x=Voters[init.Affil!=Voters[,3],1],y=Voters[init.Affil!=Voters[,3],2],col=Voters[init.Affil!=Voters[,3],3],pch=16)
+          mapply(text, x=PartiesNew[,1], y=PartiesNew[,2], MoreArgs=list(labels="Final Position", pos=1))
         }
         Parties <- PartiesNew
         
@@ -302,8 +309,8 @@ ElectoralSimulations <- function(nsims=1,visualize=FALSE, r.seed=NULL, Vn=100,Vd
       if(i == nsims & visualize==TRUE){
         mapply(points, x=PartiesNew[,1], y=PartiesNew[,2], col=1:Pn, MoreArgs=list(pch=15, cex=1.2))
         mapply(segments, x0=Parties[,1], x1=PartiesNew[,1], y0=Parties[,2], y1=PartiesNew[,2], col=1:Pn)
-        mapply(text, x=PartiesNew[,1], y=PartiesNew[,2], MoreArgs=list(labels="Final Position", pos=1))
         points(x=Voters[init.Affil!=Voters[,3],1],y=Voters[init.Affil!=Voters[,3],2],col=Voters[init.Affil!=Voters[,3],3],pch=16)
+        mapply(text, x=PartiesNew[,1], y=PartiesNew[,2], MoreArgs=list(labels="Final Position", pos=1))
       }
       
       #this resets the parties object, to either be returned or used in the next "election"
