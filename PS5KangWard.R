@@ -162,13 +162,10 @@ PartyRelocator <- function(Voters,Parties){
   for(i in 1:nrow(Parties)){ 
       Output[i,] <- apply(Voters[Voters[,3]==i,1:2],2,mean)
   }
-  Output[!complete.cases(Output),] <- 100000000 #if a party did not get any votes from voters then
-                                                #the party will be eliminated from simulation
-                                                #by setting their positions a large number.
-                                                #So, in the following plot, the eliminated party will be described 
-                                                #as going outside the plot box.
-                                                #Also, their positions will be recorded as 1.00000e+05.
-                                                
+  #if a party did not get any votes from voters then the party will be eliminated from simulation by setting their positions a large number.
+  #So, in the following plot, the eliminated party will be described as going outside the plot box.
+  #Also, their positions will be recorded as 1.00000e+05.
+  Output[!complete.cases(Output),] <- 100000000                                               
   return(Output)
 }
 
