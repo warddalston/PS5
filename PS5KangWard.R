@@ -302,9 +302,10 @@ ElectoralSimulations <- function(nsims=1,visualize=FALSE, r.seed=NULL, Vn=100,Vd
       }
       
       #these print the "Final Position" stuff for visualization when equilibrium isn't reached by the nsims point. 
+      #Also, the "Fianl Position" will be described as hollow squrare (meaning not equilibrium).
       if(i == nsims){   cat("No equilibrium was reached after",i,"elections \n") }
       if(i == nsims & visualize==TRUE){
-        mapply(points, x=PartiesNew[,1], y=PartiesNew[,2], col=1:Pn, MoreArgs=list(pch=15, cex=1.2))
+        mapply(points, x=PartiesNew[,1], y=PartiesNew[,2], col=1:Pn, MoreArgs=list(pch=22, cex=1.2))
         mapply(segments, x0=Parties[,1], x1=PartiesNew[,1], y0=Parties[,2], y1=PartiesNew[,2], col=1:Pn)
         points(x=Voters[init.Affil!=Voters[,3],1],y=Voters[init.Affil!=Voters[,3],2],col=Voters[init.Affil!=Voters[,3],3],pch=16)
         mapply(text, x=PartiesNew[,1], y=PartiesNew[,2], MoreArgs=list(labels="Final Position", pos=1))
