@@ -404,4 +404,7 @@ par(mfrow=c(1,1))
 # to choose their position. Add at least on heuristic to the model (i.e, the party heuristic chosen should be a parameter
 # for each party). How does that change the behavior of the model?
 
+<<<<<<< HEAD
+>>>>>>> FETCH_HEAD
+=======
 >>>>>>> FETCH_HEAD
