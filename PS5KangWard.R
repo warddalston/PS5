@@ -404,6 +404,145 @@ par(mfrow=c(1,1))
 # to choose their position. Add at least on heuristic to the model (i.e, the party heuristic chosen should be a parameter
 # for each party). How does that change the behavior of the model?
 
+# alter PartyRelocator function to reflect party types
+
+PartyRelocator <- function(Voters,Parties,Ptype,Size){
+  Output <- matrix(ncol=ncol(Parties),nrow=nrow(Parties),dimnames=dimnames(Parties))
+  for(i in 1:nrow(Parties)){
+    if(Ptype[i]=="a"){ #if party type is Aggregator, it executes the following
+    Output[i,] <- apply(Voters[Voters[,3]==i,1:2,drop=FALSE],2,mean)
+    } else{
+      if(Ptype[i]=="p"){ #if party type is Predator, it executes the following
+        # finds the largest party
+        largest.party <- as.numeric(names(sort(Size, decreasing=TRUE)[1]))
+        # check whether this party is the largest party
+        is.largest <- i == largest.party
+        # set direction to the largest party
+        move <- c((Parties[largest.party,1]-Parties[i,1]),(Parties[largest.party,2]-Parties[i,2]))
+        # transforming the above vector into unit vector
+        unit.move <- move/sqrt(sum(move^2))
+        
+        if(is.largest==TRUE){# if this party is the largest party, don't move.
+        Output[i,] <- Parties[i,]
+        # if this party is not the largest party, making a unit move toward the largest party
+        # Note that the unit of move is set 0.1
+      } else {Output[i,] <- Parties[i,]+unit.move*0.1}
+    } else {stop("invalid party type")}}
+  }
+#if a party did not get any votes from voters then the party will be eliminated from simulation by setting their positions a large number.
+#So, in the following plot, the eliminated party will be described as going outside the plot box.
+#Also, their positions will be recorded as 1.00000e+05.
+Output[!complete.cases(Output),] <- 100000000                                               
+return(Output)
+}
+
+# add argument "Ptype". Input must be a vector (e.g. c("a","p"))
+# "a" denotes Aggregator, "p" denotes Predator.
+# The first element of the input vector is for party 1, the second is for party 2, and so forth.
+ElectoralSimulations <- function(nsims=1,visualize=FALSE, r.seed=NULL, Vn=100,Vdist="s",Vmeans=c(0,0),Vvars=c(1,1),Vmu=NULL,VSigma=NULL,Vmin=0,Vmax=1,Pn=2,Pdist="n",Pvars=c(1,1),Pmeans=c(0,0),Pmin=0,Pmax=1,Pmu=c(0,0),PSigma=cbind(c(1,0),c(0,1)),Ptype=c("a","p")){
+  
+  # set a random seed if a user gives input of a random seed. 
+  if(!is.null(r.seed)) set.seed(r.seed)
+  
+  #don't give nsims the wrong input.  Please.  
+  if(!nsims%%1==0 | nsims < 1){
+    stop("nsims must be an integer of at least 1!")
+  }
+  
+  #The next two lines simply create the voter and party distributions
+  Voters <- VoterDistribution(Vn=Vn,Vdist=Vdist,Vmeans=Vmeans,Vvars=Vvars,Vmu=Vmu,VSigma=VSigma,Vmin=Vmin,Vmax=Vmax)
+  Parties <- PartyStarter(Pn=Pn,Pdist=Pdist,Pvars=Pvars,Pmeans=Pmeans,Pmin=Pmin,Pmax=Pmax,Pmu=Pmu,PSigma=PSigma)
+  
+  #The first four lines carry out the first "election".  This always happens, regardless of the nsims value. 
+  Voters <- VoterAffiliate(Voters,Parties)
+  Size <- table(Voters[,3]) # calculate the current party size
+  PartiesNew <- PartyRelocator(Voters,Parties,Ptype,Size)
+    
+  #stores the initial party position(character vector)
+  PartiesHistory <- apply(Parties, 1, function(x) paste("(",x[1],", ",x[2],")", sep=""))
+  
+  #this records the current positions of parties (Character vector) 
+  UpdateHistory <- apply(PartiesNew, 1, function(x) paste("(",x[1],", ",x[2],")", sep=""))
+  PartiesHistory <- c(PartiesHistory, UpdateHistory)
+  
+  #the next several lines are only used when visualizing. 
+  if(visualize==TRUE){
+    Visual(Voters,Parties) #make a base plot using initial voter affiliation and party preferences
+    if(!nsims==1){
+      #update the party positions on the plot normally if there is more than 1 election 
+      mapply(points, x=PartiesNew[,1], y=PartiesNew[,2], col=1:Pn, MoreArgs=list(pch=20, cex=1))
+    } else { #where there's only a single election (a single simulation), then this makes the plot have squares to represent the final position 
+      mapply(points, x=PartiesNew[,1], y=PartiesNew[,2], col=1:Pn, MoreArgs=list(pch=15, cex=1.2))
+      mapply(text, x=PartiesNew[,1], y=PartiesNew[,2], MoreArgs=list(labels="Final Position", pos=1))
+    } #regardlesss of the subsequent number of elections, use segments to connect the party positions
+    mapply(segments, x0=Parties[,1], x1=PartiesNew[,1], y0=Parties[,2], y1=PartiesNew[,2], col=1:Pn)
+  }
+  
+  #update this and get ready for the next election. 
+  Parties <- PartiesNew
+  
+  #Now, we check if there is more than a single "election".  If so, it executes the required number of elections.  If not, it returns the Voters, Parties, and PartiesHistories objects.  
+  if(nsims > 1){
+    for(i in 2:nsims){ #iterates according to nsims.  I think this is the appropriate use of a for loop.
+      VotersNew <- VoterAffiliate(Voters,Parties) #hold a new election, generating a new voter object
+      Size <- table(VotersNew[,3]) #Recalcuate the party size under the new party position.
+      if(visualize==TRUE){
+        
+        #plot new points, but only for voters that changed parties in this election!
+        points(x=Voters[Voters[,3]!=VotersNew[,3],1],y=Voters[Voters[,3]!=VotersNew[,3],2],col=VotersNew[Voters[,3]!=VotersNew[,3],3])
+      }
+      
+      #reassign the VotersNew object to Voters, getting ready for the new "election"
+      Voters <- VotersNew 
+      
+      #The parties then update based on the current "election"
+      PartiesNew <- PartyRelocator(Voters,Parties,Ptype,Size)
+    
+      #after every "election" and "party update", if visualization is on, the parties' new positions are plotted, and connected to thier old position with a line segment.  The plotting character is a small circle, which differentiates it from the starting position (a large circle) and the last position (a square)
+      if(visualize==TRUE){
+        mapply(points, x=PartiesNew[,1], y=PartiesNew[,2], col=1:Pn, MoreArgs=list(pch=20, cex=1))
+        mapply(segments, x0=Parties[,1], x1=PartiesNew[,1], y0=Parties[,2], y1=PartiesNew[,2], col=1:Pn)
+      }
+      
+      #these print the "Final Position" stuff for visualization when equilibrium isn't reached by the nsims point. 
+      #Also, the "Fianl Position" will be described as hollow squrare (meaning not equilibrium).
+      if(i == nsims){   cat("No equilibrium was reached after",i,"elections \n")
+                        if(visualize==TRUE){
+                          mapply(points, x=PartiesNew[,1], y=PartiesNew[,2], col=1:Pn, MoreArgs=list(pch=15, cex=1.2))
+                          mapply(segments, x0=Parties[,1], x1=PartiesNew[,1], y0=Parties[,2], y1=PartiesNew[,2], col=1:Pn)
+                          mapply(text, x=PartiesNew[,1], y=PartiesNew[,2], MoreArgs=list(labels="Final Position", pos=1))
+                        }
+      }
+      
+      #this resets the parties object, to either be returned or used in the next "election"
+      Parties <- PartiesNew 
+      
+      #this records the current positions of parties (Character vector) 
+      UpdateHistory <- apply(PartiesNew, 1, function(x) paste("(",x[1],", ",x[2],")", sep=""))
+      PartiesHistory <- c(PartiesHistory, UpdateHistory)
+      
+    } #closes the for loop
+    names(PartiesHistory) <- paste(names(PartiesHistory),"-", rep(0:nsims, rep(Pn,nsims+1)), sep="")
+  } else {
+    names(PartiesHistory) <- paste(names(PartiesHistory),"-", rep(0:nsims, rep(Pn,nsims+1)), sep="")
+  } #close the if loop 
+  return(list(PartiesHistory=PartiesHistory,Voters=Voters,Parties=Parties))
+} #close the function
+
+par(mfrow=c(1,3))
+aggregator <- ElectoralSimulations(300, visual=TRUE, Pn=2, Ptype=c("a","a"), r.seed=1801)
+aggregator.predator <- ElectoralSimulations(300, visual=TRUE, Pn=2, Ptype=c("a","p"), r.seed=1801)
+predator.predator <- ElectoralSimulations(300, visual=TRUE, Pn=2, Ptype=c("p","p"), r.seed=1801)
+par(mfrow=c(1,1))
+table(aggregator[[2]][,3])
+table(aggregator.predator[[2]][,3])
+table(predator.predator[[2]][,3])
+# When one party uses "Predator" heuristic and the other party uses "Aggregator" heuristic, the "Predator" party
+# gets worse outcome than using "Aggregator" heuristic given other party always uses "Aggregator" heuristic.
+# Interestingly, when both parties use "Predator" heuristic, their final position is the same and once their
+# final positions meet each other, there is no move anymore. 
+
+
 <<<<<<< HEAD
 >>>>>>> FETCH_HEAD
 =======
