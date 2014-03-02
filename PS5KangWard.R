@@ -340,3 +340,51 @@ BIG <- alply(.data=Run, .margins=1, .fun=function(x){
   print(ElectoralSimulations(100,Vn=x[1],Vvars=c(x[2],x[3]),Vdist="n"))
   },.parallel=TRUE)
 
+### Section D. Expand your model
+#1. Alter your model so that the number of parties is an optional input. How do your results change as a result?
+
+par(mfrow=c(2,3))
+for(i in 2:7){
+    ElectoralSimulations(100, visualize=TRUE, r.seed=1801, Pn=i)
+}    
+par(mfrow=c(1,1))
+
+#2. Alter your model so that voters vote "probabilistically" as some function of the distance between the two parties.
+# (That is, allow them to make "wrong" decision if they are nearly indifferent between the parties.) Do the results change?
+
+#plot when voters do not make 'wrong' decision.
+par(mfrow=c(2,3))
+for(i in 2:4){
+    ElectoralSimulations(100, visualize=TRUE, r.seed=1801, Pn=i)
+}    
+
+# adding 'probabilistical' feature to voters' affiliation function.
+VoterAffiliate <- function(Voters, Parties){
+  ll <- pdist(Voters[,1:2],Parties)
+  distance <- matrix(ll@dist, ncol=nrow(Parties), byrow=TRUE) #calculates distance between voters and each party
+  distance <- round(distance, 1) #voters cannot know the exact distance below 1 decimal point.
+  MinDistance <- apply(distance, 1, min) #pick out the minimum distance 
+  affiliation <- distance==MinDistance  #i'th Row: voter i, i'th Columns:Partiy i, If the voter affiliates with a party, then the value is TRUE
+  both.true <- apply(affiliation, 1, function(x) which(x==TRUE)) #because of voters' imperfect information, voters may
+                                                                 #have indifferent preferences over parties. 
+  prob.decision <- sapply(both.true, function(x) x <- x[sample(length(x),1)]) # when voters have indifferent party preference,
+                                                                              # they randomly choose. 
+  for(i in 1:nrow(affiliation)){
+      affiliation[i,-prob.decision[i]] <- FALSE
+  }
+  affiliation <- affiliation %*% c(1:nrow(Parties)) #vector indicating affiliations of voters. values are 1,2,3,...,n.
+   if(ncol(Voters)==2){
+      Voters <- cbind(Voters, affiliation) #affiliation of voters are added to the voter matrix
+    } else {Voters[,3] <- affiliation}
+    return(Voters)
+} 
+
+# plot when voters make 'wrong' decision.  
+for(i in 2:4){
+    ElectoralSimulations(100, visualize=TRUE, r.seed=1801, Pn=i)
+}   
+par(mfrow=c(1,1))
+
+# As the plots show, there are some minor changes caused by voters' 'wrong' decision. However, the final position of
+# each party does not change dramatically.
+
