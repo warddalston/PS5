@@ -397,14 +397,15 @@ for(i in 2:4){
 }   
 par(mfrow=c(1,1))
 
-# As the plots show, there are some minor changes caused by voters' 'wrong' decision. However, the final position of
-# each party does not change dramatically.
+#As the plots show, there are some minor changes caused by voters' 'wrong' decision. However, the final position of
+#each party does not change dramatically.
 
-# Laver(2005) ("Policy and dynamics of political competition") explores several additional heuristics parties might use
-# to choose their position. Add at least on heuristic to the model (i.e, the party heuristic chosen should be a parameter
-# for each party). How does that change the behavior of the model?
+#3. Laver(2005) ("Policy and dynamics of political competition") explores several additional heuristics parties might use
+#to choose their position. Add at least on heuristic to the model (i.e, the party heuristic chosen should be a parameter
+#for each party). How does that change the behavior of the model?
 
-# alter PartyRelocator function to reflect party types
+#alter PartyRelocator function to reflect party types.
+#"Aggregator" and "Predator" type will be added.
 
 PartyRelocator <- function(Voters,Parties,Ptype,Size){
   Output <- matrix(ncol=ncol(Parties),nrow=nrow(Parties),dimnames=dimnames(Parties))
@@ -436,8 +437,9 @@ Output[!complete.cases(Output),] <- 100000000
 return(Output)
 }
 
-# add argument "Ptype". Input must be a vector (e.g. c("a","p"))
+# add argument "Ptype" (Party type). Input must be a vector (e.g. c("a","p"))
 # "a" denotes Aggregator, "p" denotes Predator.
+# Note that this function still assumes that voters may make "wrong" decision. 
 # The first element of the input vector is for party 1, the second is for party 2, and so forth.
 ElectoralSimulations <- function(nsims=1,visualize=FALSE, r.seed=NULL, Vn=100,Vdist="s",Vmeans=c(0,0),Vvars=c(1,1),Vmu=NULL,VSigma=NULL,Vmin=0,Vmax=1,Pn=2,Pdist="n",Pvars=c(1,1),Pmeans=c(0,0),Pmin=0,Pmax=1,Pmu=c(0,0),PSigma=cbind(c(1,0),c(0,1)),Ptype=c("a","p")){
   
@@ -529,14 +531,16 @@ ElectoralSimulations <- function(nsims=1,visualize=FALSE, r.seed=NULL, Vn=100,Vd
   return(list(PartiesHistory=PartiesHistory,Voters=Voters,Parties=Parties))
 } #close the function
 
-par(mfrow=c(1,3))
+par(mfrow=c(2,2))
 aggregator <- ElectoralSimulations(300, visual=TRUE, Pn=2, Ptype=c("a","a"), r.seed=1801)
 aggregator.predator <- ElectoralSimulations(300, visual=TRUE, Pn=2, Ptype=c("a","p"), r.seed=1801)
-predator.predator <- ElectoralSimulations(300, visual=TRUE, Pn=2, Ptype=c("p","p"), r.seed=1801)
+predator.predator <- ElectoralSimulations(1000, visual=TRUE, Pn=2, Ptype=c("p","p"), r.seed=1801)
+predator.predator4 <- ElectoralSimulations(1000, visual=TRUE, Pn=4, Ptype=c("p","p","p","p"), r.seed=1801)
 par(mfrow=c(1,1))
 table(aggregator[[2]][,3])
 table(aggregator.predator[[2]][,3])
 table(predator.predator[[2]][,3])
+table(predator.predator4[[2]][,3])
 # When one party uses "Predator" heuristic and the other party uses "Aggregator" heuristic, the "Predator" party
 # gets worse outcome than using "Aggregator" heuristic given other party always uses "Aggregator" heuristic.
 # Interestingly, when both parties use "Predator" heuristic, their final position is the same and once their
