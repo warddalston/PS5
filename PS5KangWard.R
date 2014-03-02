@@ -349,6 +349,9 @@ for(i in 2:7){
 }    
 par(mfrow=c(1,1))
 
+# When there are only two parties, both partie move toward the middel point of voters.  
+# However, when there are more than two parties, some parties begin to move away from the middle point of voters.
+
 #2. Alter your model so that voters vote "probabilistically" as some function of the distance between the two parties.
 # (That is, allow them to make "wrong" decision if they are nearly indifferent between the parties.) Do the results change?
 
@@ -387,4 +390,8 @@ par(mfrow=c(1,1))
 
 # As the plots show, there are some minor changes caused by voters' 'wrong' decision. However, the final position of
 # each party does not change dramatically.
+
+# Laver(2005) ("Policy and dynamics of political competition") explores several additional heuristics parties might use
+# to choose their position. Add at least on heuristic to the model (i.e, the party heuristic chosen should be a parameter
+# for each party). How does that change the behavior of the model?
 
