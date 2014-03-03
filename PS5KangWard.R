@@ -12,8 +12,12 @@ library(plyr)
 library(doMC)
 library(multicore)
 library(foreach)
+library(reshape2)
 
-##### Section A: Simulation Set Up
+#####################this function does the following:
+
+# Simulation set up, 1: write a function to create a matrix of voters
+# Simulation set up, 2: allow the user to specify distributional parameters about the voters
 
 #Voter Distributions - A function for creating distributions of voter preferences
 
@@ -65,6 +69,11 @@ VoterDistribution <- function(Vn=100,Vdist="s",Vmeans=c(0,0),Vvars=c(1,1),Vmu=NU
   return(mat1)  
 }
 
+################This function does the following:
+
+#simulation set up, 3: Write a function so that voters affiliate with parties
+#Expand your model, 1: extend to multiple parties 
+
 VoterAffiliate <- function(Voters, Parties){
   ll <- pdist(Voters[,1:2],Parties)
   distance <- matrix(ll@dist, ncol=nrow(Parties), byrow=TRUE) #calculates distance between voters and each party
@@ -76,6 +85,11 @@ VoterAffiliate <- function(Voters, Parties){
     } else {Voters[,3] <- affiliation}
     return(Voters)
   } 
+
+############## this function does the following:
+
+#Simulation set up, 4: write a function to visualize
+# Expand your model, 1: allow for more than 2 parties
 
 Visual <- function(Voters, Parties){
   #this line set palette of colors. 1=blue, 2=red and so forth. NOTE_DW: This sets the colors for the ENTIRE R session.  Thus, it only needs to be run once, and if you want back to original colors, you need to run this: palette("default")
@@ -90,25 +104,24 @@ Visual <- function(Voters, Parties){
   mapply(text, x=Parties[,1], y=Parties[,2], labels=paste("Party",1:nrow(Parties)), MoreArgs=list(pos=1))
 }
  
+#These next few lines test out the visualizer
 
-#par(mfrow=c(3,3))
+par(mfrow=c(3,3))
 
-#for(i in 1:9){ # try plot the positions of the parties, the positions of the voters and their
- #              # affiliation 9 times.
-  #Voters <- VoterDistribution()
-  #Parties <- matrix(rnorm(4),ncol=2)
-  #Voters <- VoterAffiliate(Voters, Parties)
-  #Visual(Voters, Parties)
-  #}
+for(i in 1:9){ # try plot the positions of the parties, the positions of the voters and their affiliation 9 times.
+  Voters <- VoterDistribution()
+  Parties <- matrix(rnorm(4),ncol=2)
+  Voters <- VoterAffiliate(Voters, Parties)
+  Visual(Voters, Parties)
+  }
 
-#par(mfrow=c(1,1))
+par(mfrow=c(1,1))
 
 
-#### Section B: Get Things Moving! 
+############ This function does the following: 
 
-#1. For each iteration t of the model, the parties will locate at the "mean" position of all voters who addiliated with them in period t-1
-
-#2. Write a funciton that chooses the "starting" position of the parties at random
+# Get things moving, 2. Write a funciton that chooses the "starting" position of the parties at random
+# Expand your model, 1: Allow for user specified number of parties 
 
 #PartyStarter - A function to generate random ideal points for parties on two dimensions
 
@@ -144,7 +157,10 @@ PartyStarter <- function(Pn=2,Pdist="n",Pvars=c(1,1),Pmeans=c(0,0),Pmin=0,Pmax=1
   return(parties)
 }
 
-#3. write a function that re-locates the parties according to this hueristic
+########### this function does the following: 
+
+#### Get things moving, 1. For each iteration t of the model, the parties will locate at the "mean" position of all voters who addiliated with them in period t-1
+#### Get things moving, 3. write a function that re-locates the parties according to this hueristic
 
 #PartyRelocator - A function that changes parties' ideal points to the mean position of thier voters.
 
@@ -162,23 +178,17 @@ PartyRelocator <- function(Voters,Parties){
   for(i in 1:nrow(Parties)){ 
       Output[i,] <- apply(Voters[Voters[,3]==i,1:2,drop=FALSE],2,mean)
   }
-  #if a party did not get any votes from voters then the party will be eliminated from simulation by setting their positions a large number.
-  #So, in the following plot, the eliminated party will be described as going outside the plot box.
-  #Also, their positions will be recorded as 1.00000e+05.
+  #if a party did not get any votes from voters then the party will be eliminated from simulation by setting their positions a large number. So, in the following plot, the eliminated party will be described as going outside the plot box. Also, their positions will be recorded as 1.00000e+05.
   Output[!complete.cases(Output),] <- 100000000                                               
   return(Output)
 }
 
-# here ends the "testing" code 
+######### this function does all of the following: 
 
-#4. Write a "master" function that runs the simulation.  This should involve:
-
-# - Sets up the voters
-# - Setus up (at random) the initial positions of the two parties
-# - Iterates across the following steps: 
-# -- Voters cast votes
-# -- Parties re-locate
-# - After a specified number of iterations, the simulation stops
+# Get things moving, 4: Write a master function that runs the simulation
+# Get things moving, 5: Add an optional visual element to this process
+# Explore your model, 1: Alter your function to allow parameter, seed, and iteration inputs
+# Explore your model, 2: make the output the vector of positions the parties take throughout the simulation
 
 #ElectoralSimulations - A function for running a simple electoral simulations
 
@@ -214,8 +224,9 @@ PartyRelocator <- function(Voters,Parties){
 
 #output: A list with the following elements: 
 #       PartiesHistory - the vector of positions the parties take throughout the simulation
-#       Voters - a matrix of the Voter's preferences and thier party affiliation in the final electoin
+#       Voters - a matrix of the Voter's preferences and thier party affiliation in the final election
 #       Parties - a matrix of the Parties' final positions. 
+#       nsims - the number of elections held before the simulation ended.
 
 #If visualize==TRUE, then a plot is also created.  This plot contains a single unfilled circle for each voter, which is colored blue or red depending on the voter's party affiliation.  When a voter switches party affiliation, a new circle of the other color is plotted over the original circle, resulting in a purple circle.  This indiciates a voter who has switched affiliation.  The more "bluish-purple" indicates the voter has switched from the red to the blue side more often, while the more "redish-purple" indicates the voter has switched to the red side from the blue side more.  The locations of the parties are also plotted.  Thier initial positions are plotted with a large filled circle, with the text "party X" written underneath, where X is the party number.  Subsequent party positions are represented by small filled cirlces connected by line segments.  The party position in the last iteration (either because the simluation reached equilibrium or beacuse the total of nsims iterations were ran) is represented by a large filled square, with the text "Final Position" written underneath.    
 
@@ -298,7 +309,7 @@ ElectoralSimulations <- function(nsims=1,visualize=FALSE, r.seed=NULL, Vn=100,Vd
         #Give the Parties History object informative names before returning them
         names(PartiesHistory) <- paste(names(PartiesHistory),"-", rep(0:i, rep(Pn,i+1)), sep="")
         
-        return(list(PartiesHistory=PartiesHistory,Voters=Voters,Parties=Parties))
+        return(list(PartiesHistory=PartiesHistory,Voters=Voters,Parties=Parties,nsims=i))
       }
       
       #after every "election" and "party update", if visualization is on, the parties' new positions are plotted, and connected to thier old position with a line segment.  The plotting character is a small circle, which differentiates it from the starting position (a large circle) and the last position (a square)
@@ -329,28 +340,51 @@ ElectoralSimulations <- function(nsims=1,visualize=FALSE, r.seed=NULL, Vn=100,Vd
   } else {
     names(PartiesHistory) <- paste(names(PartiesHistory),"-", rep(0:nsims, rep(Pn,nsims+1)), sep="")
   } #close the if loop 
-  return(list(PartiesHistory=PartiesHistory,Voters=Voters,Parties=Parties))
+  return(list(PartiesHistory=PartiesHistory,Voters=Voters,Parties=Parties,nsims=nsims))
 } #close the function
 
-out <- ElectoralSimulations(100,visualize=TRUE,Pn=15)
+############# The code below does the following:
 
-#5. You will find it helpful (and fun!!!!!) to have some visualtion of this process, but note that this will slow up the speed of your simulations considerably.  
+# Explore your model, 3: sweep through parameter space with expand.grid
 
-Run <- expand.grid(Vn=10:500,Vvars1=seq(1,5,.1),Vvars2=1)
+#I create an expanded grid for possible combinations of party system size and electorate size.  I am interested in seeing how these two parameters impact the number of elections until an equilibrium is reached. In other words, what is the relationship between party sytem size, electorate size, and electoral stability? 
+Run <- expand.grid(Vn=100:500,Pn=2:10)
 
+#set up parallel
 registerDoMC(cores=4)
 
-
-BIG <- alply(.data=Run, .margins=1, .fun=function(x){
+#The next five lives use aaply from plyr to sweep through the run grid.  For each combination I record the number of elections held until equilibrium.
+BIG <- aaply(.data=Run, .margins=1, .fun=function(x){
   x <- unlist(x)
-  print(ElectoralSimulations(100,Vn=x[1],Vvars=c(x[2],x[3]),Vdist="n"))
-<<<<<<< HEAD
-  },.parallel=TRUE)
-=======
-  },.parallel=TRUE)
+  out <- ElectoralSimulations(100,Vn=x[1],Pn=x[2],r.seed=1801)[["nsims"]]
+  return(out)
+},.parallel=TRUE)
 
-### Section D. Expand your model
-#1. Alter your model so that the number of parties is an optional input. How do your results change as a result?
+#put the output into a more useful shape
+LONG <- melt(BIG)
+
+#fit a model to see if electorate size, party system size, and thier interaction predict the number of elections it takes to reach an equilibrium.  The appropriate model is a negative binomial, because we are interested in the number of failures before the 1st success.  Also, there are reasons to suspect overdispersion - the variance in electoral success is likely to be larger for larger electorates and larger party systems.  
+mod.1 <- glm.nb(value~Vn*Pn,data=LONG)
+summary(mod.1)
+mod.2 <- glm.nb(value~Vn+Pn,data=LONG)
+summary(mod.2)
+anova(mod.1,mod.2)
+
+#We see from the summary that there is statistically reliable evidence that number of elections before an equilibrium is increasing in Vn, Pn, and in thier intercation.  Furthermore, we see that the model is a good fit, and that the interaction significantly improves the fit.  Thus, we conclude that there is fairly reliable evidence that the number of elections held before an equilibrium is reached is increasing in Pn, Vn, and in thier interaction.  
+
+############### The code below does the following:
+
+#Explore your model, 4: Characterize a comparative static of interest 
+
+# I create a 3d plot with Vn and Pn as the x and y axes, and the number of elections as the outcome. 
+
+persp(x=100:500,y=2:10,z=BIG,xlab="Number of Voters",ylab="Number of Parties",zlab="N elections for an equilibrium",theta=-55,phi=35,col="cyan",shade=.5,main="Compartive static of party system size and electorate size on electoral stability")
+
+#we see that the number of elections increases much faster as Vn increasees.  It is less clear that the number of elections increases as the number of parties increases.  However, one can clearly see that the number of elections is increasing in the interaction of Vn and Pn.  Thus, we argue that electoral stability is underminded by both large electorates and large party systems.  
+
+######### The code below does the following:
+
+#Expand your model, 1. Alter your model so that the number of parties is an optional input. How do your results change as a result? (other code for this excercise included in functions above)
 
 par(mfrow=c(2,3))
 for(i in 2:7){
@@ -358,11 +392,11 @@ for(i in 2:7){
 }    
 par(mfrow=c(1,1))
 
-# When there are only two parties, both partie move toward the middel point of voters.  
-# However, when there are more than two parties, some parties begin to move away from the middle point of voters.
+# When there are only two parties, both partie move toward the middel point of voters. However, when there are more than two parties, some parties begin to move away from the middle point of voters.
 
-#2. Alter your model so that voters vote "probabilistically" as some function of the distance between the two parties.
-# (That is, allow them to make "wrong" decision if they are nearly indifferent between the parties.) Do the results change?
+######### The code below does the following:
+
+#Expand your model, 2: Alter your model so that voters vote "probabilistically" as some function of the distance between the two parties. (That is, allow them to make "wrong" decision if they are nearly indifferent between the parties.) Do the results change?
 
 #plot when voters do not make 'wrong' decision.
 par(mfrow=c(2,3))
@@ -377,10 +411,8 @@ VoterAffiliate <- function(Voters, Parties){
   distance <- round(distance, 1) #voters cannot know the exact distance below 1 decimal point.
   MinDistance <- apply(distance, 1, min) #pick out the minimum distance 
   affiliation <- distance==MinDistance  #i'th Row: voter i, i'th Columns:Partiy i, If the voter affiliates with a party, then the value is TRUE
-  both.true <- apply(affiliation, 1, function(x) which(x==TRUE)) #because of voters' imperfect information, voters may
-                                                                 #have indifferent preferences over parties. 
-  prob.decision <- sapply(both.true, function(x) x <- x[sample(length(x),1)]) # when voters have indifferent party preference,
-                                                                              # they randomly choose. 
+  both.true <- apply(affiliation, 1, function(x) which(x==TRUE)) #because of voters' imperfect information, voters may have indifferent preferences over parties. 
+  prob.decision <- sapply(both.true, function(x) x <- x[sample(length(x),1)]) # when voters have indifferent party preference, they randomly choose. 
   for(i in 1:nrow(affiliation)){
       affiliation[i,-prob.decision[i]] <- FALSE
   }
@@ -397,15 +429,13 @@ for(i in 2:4){
 }   
 par(mfrow=c(1,1))
 
-#As the plots show, there are some minor changes caused by voters' 'wrong' decision. However, the final position of
-#each party does not change dramatically.
+#As the plots show, there are some minor changes caused by voters' 'wrong' decision. However, the final position of each party does not change dramatically.
 
-#3. Laver(2005) ("Policy and dynamics of political competition") explores several additional heuristics parties might use
-#to choose their position. Add at least on heuristic to the model (i.e, the party heuristic chosen should be a parameter
-#for each party). How does that change the behavior of the model?
+##################The code below does the following:
 
-#alter PartyRelocator function to reflect party types.
-#"Aggregator" and "Predator" type will be added.
+#Expand your model, 3: Laver(2005) ("Policy and dynamics of political competition") explores several additional heuristics parties might use to choose their position. Add at least on heuristic to the model (i.e, the party heuristic chosen should be a parameter for each party). How does that change the behavior of the model?
+
+#alter PartyRelocator function to reflect party types. "Aggregator" and "Predator" type will be added.
 
 PartyRelocator <- function(Voters,Parties,Ptype,Size){
   Output <- matrix(ncol=ncol(Parties),nrow=nrow(Parties),dimnames=dimnames(Parties))
@@ -541,13 +571,4 @@ table(aggregator[[2]][,3])
 table(aggregator.predator[[2]][,3])
 table(predator.predator[[2]][,3])
 table(predator.predator4[[2]][,3])
-# When one party uses "Predator" heuristic and the other party uses "Aggregator" heuristic, the "Predator" party
-# gets worse outcome than using "Aggregator" heuristic given other party always uses "Aggregator" heuristic.
-# Interestingly, when both parties use "Predator" heuristic, their final position is the same and once their
-# final positions meet each other, there is no move anymore. 
-
-
-<<<<<<< HEAD
->>>>>>> FETCH_HEAD
-=======
->>>>>>> FETCH_HEAD
+# When one party uses "Predator" heuristic and the other party uses "Aggregator" heuristic, the "Predator" party gets worse outcome than using "Aggregator" heuristic given other party always uses "Aggregator" heuristic. Interestingly, when both parties use "Predator" heuristic, their final position is the same and once their final positions meet each other, there is no move anymore. 
